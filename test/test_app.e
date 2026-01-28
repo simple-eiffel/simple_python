@@ -12,16 +12,11 @@ create
 feature {NONE} -- Initialization
 
 	make
-			-- Run all tests with automatic server setup/teardown.
+			-- Run all tests. Integration tests manage their own server setup/teardown.
 		do
 			create output.make_empty
-			create http_process.make
-			create ipc_process.make
 
 			output.append ("=== simple_python Test Suite ===%N%N")
-
-			-- Start Python servers for integration tests
-			setup_servers
 
 			output.append ("--- SIMPLE_PYTHON tests ---%N")
 			run_simple_python_tests
@@ -46,63 +41,8 @@ feature {NONE} -- Initialization
 
 			output.append ("%N=== All tests passed ===%N")
 
-			-- Tear down servers
-			teardown_servers
-
 			-- Write results to console
 			print (output)
-		end
-
-feature {NONE} -- Server Management
-
-	http_process: SIMPLE_PROCESS
-			-- HTTP test server process.
-
-	ipc_process: SIMPLE_PROCESS
-			-- IPC test server process.
-
-	setup_servers
-			-- Start Python test servers in background.
-		local
-			l_cmd: STRING_32
-		do
-			create http_process.make
-			create ipc_process.make
-
-			-- Start HTTP server in background (port 8888)
-			l_cmd := {STRING_32} "start /B python3 python_test_server.py"
-			http_process.execute (l_cmd)
-			sleep_milliseconds (2000)  -- Allow server to start
-
-			-- Start IPC server in background (Windows named pipe)
-			-- TODO: Enable when Win32 API implementation is complete and win32pipe module available
-			-- l_cmd := {STRING_32} "start /B python3 python_ipc_server.py"
-			-- ipc_process.execute (l_cmd)
-			-- sleep_milliseconds (1000)  -- Allow server to start
-		end
-
-	teardown_servers
-			-- Stop all Python test servers.
-		local
-			l_proc: SIMPLE_PROCESS
-		do
-			-- Kill Python processes (both HTTP and IPC servers)
-			create l_proc.make
-			l_proc.execute ("taskkill /F /IM python.exe /FI 'WINDOWTITLE eq*simple_python*' 2>NUL")
-			sleep_milliseconds (500)
-
-			-- Alternative: more forceful kill
-			l_proc.execute ("pkill -9 python3 2>NUL || exit 0")
-			sleep_milliseconds (500)
-		end
-
-	sleep_milliseconds (a_ms: INTEGER)
-			-- Sleep for specified milliseconds.
-		local
-			l_proc: SIMPLE_PROCESS
-		do
-			create l_proc.make
-			l_proc.execute ("timeout /t " + (a_ms // 1000).out + " /nobreak")
 		end
 
 feature {NONE} -- Implementation

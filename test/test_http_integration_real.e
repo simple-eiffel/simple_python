@@ -9,6 +9,52 @@ class TEST_HTTP_INTEGRATION_REAL
 inherit
 	TEST_SET_BASE
 
+feature {NONE} -- Setup/Teardown
+
+	setup
+			-- Start Python HTTP server before each test.
+		local
+			l_proc: SIMPLE_PROCESS
+		do
+			create http_process.make
+			create l_proc.make
+
+			-- Start HTTP server in background
+			l_proc.execute ({STRING_32} "start /B python3 python_test_server.py")
+
+			-- Wait for server to initialize
+			sleep_milliseconds (2000)
+		end
+
+	teardown
+			-- Stop Python HTTP server after each test.
+		local
+			l_proc: SIMPLE_PROCESS
+		do
+			-- Kill Python HTTP server process
+			create l_proc.make
+			l_proc.execute ("taskkill /F /IM python.exe 2>NUL")
+			sleep_milliseconds (500)
+
+			-- Fallback: pkill
+			l_proc.execute ("pkill -9 python3 2>NUL || exit 0")
+			sleep_milliseconds (500)
+		end
+
+feature {NONE} -- Process Management
+
+	http_process: detachable SIMPLE_PROCESS
+			-- HTTP server process handle.
+
+	sleep_milliseconds (a_ms: INTEGER)
+			-- Sleep for specified milliseconds.
+		local
+			l_proc: SIMPLE_PROCESS
+		do
+			create l_proc.make
+			l_proc.execute ("timeout /t " + (a_ms // 1000).out + " /nobreak")
+		end
+
 feature -- Tests
 
 	test_http_bridge_sends_to_python_server

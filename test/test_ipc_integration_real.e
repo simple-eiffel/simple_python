@@ -9,6 +9,52 @@ class TEST_IPC_INTEGRATION_REAL
 inherit
 	TEST_SET_BASE
 
+feature {NONE} -- Setup/Teardown
+
+	setup
+			-- Start Python IPC server before each test.
+		local
+			l_proc: SIMPLE_PROCESS
+		do
+			create ipc_process.make
+			create l_proc.make
+
+			-- Start IPC server in background
+			l_proc.execute ({STRING_32} "start /B python3 python_ipc_server.py")
+
+			-- Wait for server to initialize
+			sleep_milliseconds (1000)
+		end
+
+	teardown
+			-- Stop Python IPC server after each test.
+		local
+			l_proc: SIMPLE_PROCESS
+		do
+			-- Kill Python IPC server process
+			create l_proc.make
+			l_proc.execute ("taskkill /F /IM python.exe 2>NUL")
+			sleep_milliseconds (500)
+
+			-- Fallback: pkill
+			l_proc.execute ("pkill -9 python3 2>NUL || exit 0")
+			sleep_milliseconds (500)
+		end
+
+feature {NONE} -- Process Management
+
+	ipc_process: detachable SIMPLE_PROCESS
+			-- IPC server process handle.
+
+	sleep_milliseconds (a_ms: INTEGER)
+			-- Sleep for specified milliseconds.
+		local
+			l_proc: SIMPLE_PROCESS
+		do
+			create l_proc.make
+			l_proc.execute ("timeout /t " + (a_ms // 1000).out + " /nobreak")
+		end
+
 feature -- Tests
 
 	test_ipc_bridge_sends_to_python_server
