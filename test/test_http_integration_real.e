@@ -83,6 +83,8 @@ feature -- Tests
 			l_msg: STRING_32
 		do
 			logger.log_info ("TEST: test_http_bridge_sends_to_python_server START")
+			logger.log_info ("NOTE: Requires Python HTTP server running on port 8889")
+			logger.log_info ("If server not available, this test will be skipped")
 
 			-- Send a message to the running Python test server via HTTP and validate round-trip.
 			-- Create bridge pointing to Python server on localhost:8889
