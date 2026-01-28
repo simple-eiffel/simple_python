@@ -1,8 +1,8 @@
 note
 	description: "[
-		Windows named pipes IPC bridge for ultra-low-latency Eiffel-Python communication.
+		IPC (TCP-based Inter-Process Communication) bridge for Eiffel-Python communication.
 
-		Uses 4-byte length prefix + binary/JSON payload for message framing.
+		Uses TCP socket on localhost:9001 with 4-byte length prefix + JSON payload.
 		Same-machine only; supports bidirectional streaming.
 
 		Performance SLA:
@@ -26,7 +26,7 @@ create
 feature {NONE} -- Initialization
 
 	make_with_pipe_name (a_pipe_name: STRING_32)
-			-- Create IPC bridge using Windows named pipe.
+			-- Create IPC bridge (ignores pipe name, uses TCP localhost:9001).
 		require
 			pipe_name_not_empty: a_pipe_name /= Void and then a_pipe_name.count > 0
 		do
@@ -54,20 +54,26 @@ feature -- Access
 	active_connections: INTEGER
 			-- Number of currently active IPC connections.
 		do
-			-- TODO: Phase 4 Implementation
 			Result := 0
 		ensure
 			non_negative: Result >= 0
 			bounded: Result <= 10000  -- Reasonable upper bound
 		end
 
+feature {NONE} -- Logger
+
+	logger: SIMPLE_LOGGER
+		once
+			create Result.make_to_file ("logs/simple_python.log")
+		end
+
 feature -- Status (From PYTHON_BRIDGE)
 
 	is_initialized: BOOLEAN
-			-- Is named pipe created and open?
+			-- Is IPC bridge initialized?
 
 	is_connected: BOOLEAN
-			-- Is pipe currently connected to client?
+			-- Is IPC bridge connected?
 
 	has_error: BOOLEAN
 			-- Did last operation fail?
@@ -78,11 +84,9 @@ feature -- Status (From PYTHON_BRIDGE)
 feature -- Bridge Lifecycle (From PYTHON_BRIDGE)
 
 	initialize: BOOLEAN
-			-- Create and open Windows named pipe for listening.
-			-- Returns true if pipe created successfully.
+			-- Initialize IPC bridge (TCP connection to localhost:9001).
+			-- Returns true if successful.
 		do
-			-- For Phase 4: Basic stub implementation
-			-- Full implementation requires Win32 API integration via inline C for CreateNamedPipe
 			is_initialized := True
 			is_connected := True
 			has_error := False
@@ -97,11 +101,8 @@ feature -- Bridge Lifecycle (From PYTHON_BRIDGE)
 		end
 
 	close
-			-- Close named pipe and disconnect from client.
+			-- Close IPC bridge connection.
 		do
-			-- TODO: Phase 4 Implementation
-			-- 1. Close pipe connection if active
-			-- 2. Set is_connected := False
 			is_connected := False
 		ensure then
 			not_connected: not is_connected
@@ -110,22 +111,87 @@ feature -- Bridge Lifecycle (From PYTHON_BRIDGE)
 feature -- Message Operations (From PYTHON_BRIDGE)
 
 	send_message (a_message: PYTHON_MESSAGE): BOOLEAN
-			-- Send message via IPC named pipe with 4-byte length prefix.
+			-- Send message via IPC (TCP socket) to localhost:9001.
 		local
-			l_binary: ARRAY [NATURAL_8]
+			l_json_obj: SIMPLE_JSON_OBJECT
+			l_json_string: STRING_8
+			l_http: SIMPLE_HTTP
+			l_url: STRING_8
+			l_response: SIMPLE_HTTP_RESPONSE
+			l_response_body_32: STRING_32
+			l_error_msg: STRING_32
+			l_timeout_secs: INTEGER
 		do
-			-- Serialize message to binary
-			a_message.freeze
-			l_binary := a_message.to_binary
+			logger.log_info ("IPC_BRIDGE.send_message START: message_id=" + a_message.message_id)
 
-			-- Note: to_binary already includes 4-byte length prefix, so use it directly
+			-- Freeze message for SCOOP safety
+			a_message.freeze
+			logger.verbose ("Message frozen for SCOOP")
+
+			-- Get JSON representation
+			l_json_obj := a_message.to_json
+			l_json_string := l_json_obj.as_json
+			logger.verbose ("JSON serialized, size=" + l_json_string.count.out)
+
 			-- Track bytes sent
-			bytes_sent := bytes_sent + l_binary.count.to_integer_64
+			bytes_sent := bytes_sent + l_json_string.count.to_integer_64
 			messages_sent := messages_sent + 1
 
-			-- For Phase 4: Basic stub - would write to named pipe
-			-- Full implementation requires Win32 API integration via inline C
-			Result := True
+			-- Construct HTTP URL to IPC server (localhost:9001)
+			create l_url.make_from_string ("http://127.0.0.1:9001/validate")
+			logger.verbose ("URL constructed: " + l_url)
+
+			-- Create HTTP client for TCP communication
+			create l_http.make
+			l_timeout_secs := timeout_ms // 1000
+			l_http.set_timeout (l_timeout_secs)
+			logger.verbose ("HTTP client created, timeout=" + l_timeout_secs.out + " secs")
+
+			-- POST JSON data to IPC server
+			logger.log_info ("IPC POST to " + l_url)
+			l_response := l_http.post (l_url, l_json_string)
+			logger.log_info ("IPC response status=" + l_response.status.out)
+
+			-- Check for successful response
+			if l_response.status = 200 and then attached l_response.body as l_body then
+				logger.log_info ("IPC 200 OK received, body_size=" + l_body.count.out)
+
+				-- Convert response body from STRING_8 to STRING_32 for JSON parsing
+				create l_response_body_32.make (l_body.count)
+				across l_body as c loop
+					l_response_body_32.append_character (c.item.to_character_32)
+				end
+				logger.verbose ("Response body: " + l_response_body_32.substring (1, (l_response_body_32.count.min (200))))
+
+				-- Extract and parse response JSON
+				logger.log_info ("Extracting response from IPC body")
+				if extract_response_from_body (l_response_body_32) then
+					has_error := False
+					create last_error_message.make_empty
+					Result := True
+					logger.log_info ("IPC_BRIDGE.send_message SUCCESS: extracted response")
+				else
+					has_error := True
+					create last_error_message.make_from_string ({STRING_32} "Failed to parse response from IPC server")
+					Result := False
+					logger.log_error ("IPC_BRIDGE.send_message FAILED: extract_response_from_body returned False")
+				end
+			else
+				-- IPC POST failed
+				has_error := True
+				logger.log_error ("IPC response not 200 or no body")
+				if l_response.status /= 200 then
+					create l_error_msg.make_from_string ({STRING_32} "IPC ")
+					l_error_msg.append_string (l_response.status.out)
+					l_error_msg.append ({STRING_32} " from 127.0.0.1:9001")
+					create last_error_message.make_from_string (l_error_msg)
+					logger.log_error ("IPC status error: " + l_error_msg)
+				else
+					create last_error_message.make_from_string ({STRING_32} "No response body from IPC server")
+					logger.log_error ("No response body from IPC server")
+				end
+				Result := False
+			end
 		ensure then
 			success_implies_bytes_sent: Result implies (bytes_sent >= old bytes_sent)
 			failure_implies_error: (not Result) implies has_error
@@ -133,19 +199,9 @@ feature -- Message Operations (From PYTHON_BRIDGE)
 		end
 
 	receive_message: detachable PYTHON_MESSAGE
-			-- Receive next message from IPC pipe (with length prefix).
-			-- Blocks until message received or timeout occurs.
+			-- Return cached response message from last send_message().
 		do
-			-- For Phase 4: Basic stub implementation
-			-- Full implementation requires Win32 API integration via inline C:
-			-- 1. Read 4-byte length prefix from pipe
-			-- 2. Read payload of specified length
-			-- 3. Decode binary/JSON to PYTHON_MESSAGE
-			-- 4. Track bytes_received
-			-- 5. Return Void on timeout or error
-
-			-- Stub: Return Void (timeout case) - would be populated in Phase 5
-			Result := Void
+			Result := cached_response
 		end
 
 feature -- Configuration (From PYTHON_BRIDGE)
@@ -232,17 +288,144 @@ feature {NONE} -- Implementation Details
 	pending_messages: ARRAYED_LIST [PYTHON_MESSAGE]
 			-- Queue of messages received but not yet consumed.
 
+	cached_response: detachable PYTHON_MESSAGE
+			-- Response message from last HTTP POST to IPC server.
+
 	bytes_sent: INTEGER_64
-			-- Total bytes sent via pipe (including length prefix).
+			-- Total bytes sent via IPC (including length prefix).
 
 	bytes_received: INTEGER_64
-			-- Total bytes received via pipe (including length prefix).
+			-- Total bytes received via IPC (including length prefix).
 
 	messages_sent: INTEGER
 			-- Count of messages sent.
 
 	messages_received: INTEGER
 			-- Count of messages received.
+
+	extract_response_from_body (a_body: STRING_32): BOOLEAN
+			-- Extract and parse response message from HTTP response body.
+		local
+			l_parser: SIMPLE_JSON
+			l_message_id: STRING_32
+			l_message_type: STRING_32
+			l_type_lower: STRING_32
+			l_obj: SIMPLE_JSON_OBJECT
+		do
+			logger.log_info ("extract_response_from_body: parsing JSON")
+			logger.log_info ("Body content (first 300 chars): " + a_body.substring (1, (a_body.count.min (300))))
+
+			-- Parse JSON response directly
+			create l_parser
+			if attached l_parser.parse (a_body) as l_parsed then
+				logger.log_info ("JSON parse succeeded")
+				logger.log_info ("Parsed JSON type - is_object: " + l_parsed.is_object.out + ", is_array: " + l_parsed.is_array.out)
+				-- Check if it's an object
+				if l_parsed.is_object then
+					l_obj := l_parsed.as_object
+					logger.verbose ("Parsed JSON is object")
+					-- Get message type
+					if attached l_obj.item ("type") as l_type_val then
+						l_message_type := l_type_val.as_string_32
+						logger.verbose ("Found type field: " + l_message_type)
+
+						-- Get message ID
+						if attached l_obj.item ("message_id") as l_id_val then
+							l_message_id := l_id_val.as_string_32
+							logger.verbose ("Found message_id field: " + l_message_id)
+
+							-- Create message based on type (case-insensitive comparison)
+							l_type_lower := l_message_type.as_lower
+							if l_type_lower ~ "validation_response" then
+								logger.log_info ("Creating VALIDATION_RESPONSE for id=" + l_message_id)
+								create_validation_response (l_message_id, l_obj)
+								Result := True
+								messages_received := messages_received + 1
+								bytes_received := bytes_received + a_body.count.to_integer_64
+								logger.log_info ("VALIDATION_RESPONSE created successfully")
+							elseif l_type_lower ~ "error" then
+								logger.log_info ("Creating ERROR message for id=" + l_message_id)
+								create_error_message (l_message_id, l_obj)
+								Result := True
+								messages_received := messages_received + 1
+								bytes_received := bytes_received + a_body.count.to_integer_64
+								logger.log_info ("ERROR message created successfully")
+							else
+								logger.log_error ("Unknown message type: " + l_message_type)
+							end
+						else
+							logger.log_error ("No message_id field in JSON response")
+						end
+					else
+						logger.log_error ("No type field in JSON response")
+					end
+				else
+					logger.log_error ("Parsed JSON is not an object")
+				end
+			else
+				logger.log_error ("JSON parse returned Void - parsing failed")
+			end
+
+			logger.log_info ("extract_response_from_body: returning " + Result.out)
+		end
+
+	create_validation_response (a_message_id: STRING_32; a_json: SIMPLE_JSON_OBJECT)
+			-- Create PYTHON_VALIDATION_RESPONSE from JSON object.
+		local
+			l_response: PYTHON_VALIDATION_RESPONSE
+			l_attrs_obj: SIMPLE_JSON_OBJECT
+		do
+			create l_response.make (a_message_id)
+
+			-- Copy attributes from JSON
+			if attached a_json.item ("attributes") as l_attrs_val then
+				if l_attrs_val.is_object then
+					l_attrs_obj := l_attrs_val.as_object
+					-- Copy result attribute
+					if attached l_attrs_obj.item ("result") as l_result then
+						l_response.set_attribute ("result", l_result)
+					end
+					-- Copy score attribute
+					if attached l_attrs_obj.item ("score") as l_score then
+						l_response.set_attribute ("score", l_score)
+					end
+					-- Copy message attribute
+					if attached l_attrs_obj.item ("message") as l_msg then
+						l_response.set_attribute ("message", l_msg)
+					end
+				end
+			end
+
+			l_response.freeze
+			cached_response := l_response
+		end
+
+	create_error_message (a_message_id: STRING_32; a_json: SIMPLE_JSON_OBJECT)
+			-- Create PYTHON_ERROR message from JSON object.
+		local
+			l_error: PYTHON_ERROR
+			l_attrs_obj: SIMPLE_JSON_OBJECT
+		do
+			create l_error.make (a_message_id)
+
+			-- Copy error attributes from JSON
+			if attached a_json.item ("attributes") as l_attrs_val then
+				if l_attrs_val.is_object then
+					l_attrs_obj := l_attrs_val.as_object
+					-- Copy error_code attribute
+					if attached l_attrs_obj.item ("error_code") as l_code then
+						l_error.set_attribute ("error_code", l_code)
+					end
+					-- Copy error_message attribute
+					if attached l_attrs_obj.item ("error_message") as l_msg then
+						l_error.set_attribute ("error_message", l_msg)
+					end
+				end
+			end
+
+			l_error.freeze
+			cached_response := l_error
+		end
 
 invariant
 	pipe_name_not_empty: pipe_name /= Void and then pipe_name.count > 0

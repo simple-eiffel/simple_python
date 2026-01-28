@@ -19,11 +19,8 @@ feature -- Setup/Teardown
 			create ipc_process.make
 			create l_proc.make
 
-			-- Start IPC server in background
-			l_proc.execute ({STRING_32} "python3 d:\prod\simple_python\python_ipc_server.py")
-
-			-- Wait for server to initialize
-			sleep_milliseconds (1000)
+			-- Start IPC server using blocking launcher (waits for port 9001 listening)
+			l_proc.execute ({STRING_32} "python3 d:\prod\simple_python\start_ipc_server_blocking.py 9001")
 		end
 
 	teardown

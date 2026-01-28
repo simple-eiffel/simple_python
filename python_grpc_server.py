@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-IPC (Inter-Process Communication) server using TCP sockets on localhost.
-Listens on port 9001 (or specified port) and handles bidirectional message exchange.
-Messages use 4-byte big-endian length prefix + JSON payload (same as HTTP server).
+gRPC-like server using TCP sockets on localhost.
+Listens on port 9002 (or specified port) and handles bidirectional message exchange.
+Messages use 4-byte big-endian length prefix + JSON payload (same as IPC server).
 """
 
 import socket
@@ -11,21 +11,21 @@ import sys
 import json
 from threading import Thread
 
-class IPCServer:
-    def __init__(self, port=9001):
+class GRPCServer:
+    def __init__(self, port=9002):
         self.port = port
         self.server = None
         self.running = False
 
     def start(self):
-        """Start the IPC server."""
+        """Start the gRPC server."""
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.server.bind(('127.0.0.1', self.port))
         self.server.listen(5)
         self.running = True
 
-        print(f"[STARTUP] IPC server listening on 127.0.0.1:{self.port}", file=sys.stderr)
+        print(f"[STARTUP] gRPC server listening on 127.0.0.1:{self.port}", file=sys.stderr)
         sys.stderr.flush()
 
         while self.running:
@@ -78,7 +78,7 @@ class IPCServer:
                         "message_id": message_json.get("message_id", "unknown"),
                         "attributes": {
                             "result": "PASS",
-                            "message": "IPC Message received and validated",
+                            "message": "gRPC Message received and validated",
                             "echoed_message_id": message_json.get("message_id", "unknown")
                         }
                     }
@@ -112,13 +112,13 @@ class IPCServer:
 
 
 def main():
-    port = int(sys.argv[1]) if len(sys.argv) > 1 else 9001
+    port = int(sys.argv[1]) if len(sys.argv) > 1 else 9002
 
-    server = IPCServer(port)
+    server = GRPCServer(port)
     try:
         server.start()
     except KeyboardInterrupt:
-        print("\n[SHUTDOWN] IPC server shutting down...", file=sys.stderr)
+        print("\n[SHUTDOWN] gRPC server shutting down...", file=sys.stderr)
         sys.stderr.flush()
         server.stop()
 

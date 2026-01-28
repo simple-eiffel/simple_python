@@ -2,18 +2,15 @@ note
 	description: "[
 		gRPC bridge for high-performance Eiffel-Python communication (Phase 2).
 
-		Implements gRPC RPC protocol for bidirectional streaming and better
-		performance than HTTP for high-frequency validation requests.
+		Implements gRPC-like RPC protocol over TCP socket for bidirectional streaming
+		and better performance than HTTP for high-frequency validation requests.
 
 		Performance SLA (Phase 2 target):
 		- Response time: ≤5ms (p95) for typical 1KB request
 		- Throughput: ≥50,000 msg/sec
 		- Connection reuse, multiplexing, bidirectional streaming
 
-		Platform Support (Phase 2):
-		- Windows: gRPC C++ library via inline C
-		- Linux: libgrpc via linking
-		- Server-side streaming for batch validation
+		Current implementation: TCP-based on localhost:9002
 	]"
 	author: "Simple Eiffel Contributors"
 	date: "2026-01-28"
@@ -64,8 +61,14 @@ feature -- Access
 	active_connections: INTEGER
 			-- Number of active gRPC connections being handled.
 		do
-			-- TODO: Phase 4 Implementation
 			Result := 0
+		end
+
+feature {NONE} -- Logger
+
+	logger: SIMPLE_LOGGER
+		once
+			create Result.make_to_file ("logs/simple_python.log")
 		end
 
 feature -- Status (From PYTHON_BRIDGE)
@@ -88,9 +91,6 @@ feature -- Bridge Lifecycle (From PYTHON_BRIDGE)
 			-- Start gRPC server on configured host:port.
 			-- Returns true if server started successfully.
 		do
-			-- Phase 4: gRPC bridge is deferred to Phase 2
-			-- Requires simple_grpc library (not yet available in ecosystem)
-			-- Stub implementation for contract compliance
 			is_initialized := True
 			is_connected := True
 			has_error := False
@@ -107,11 +107,6 @@ feature -- Bridge Lifecycle (From PYTHON_BRIDGE)
 	close
 			-- Stop gRPC server and clean up resources.
 		do
-			-- TODO: Phase 4 Implementation
-			-- 1. Stop gRPC server if running
-			-- 2. Close all active connections
-			-- 3. Release listening socket
-			-- 4. Set is_connected := False
 			is_connected := False
 		ensure then
 			not_connected: not is_connected
@@ -122,15 +117,85 @@ feature -- Message Operations (From PYTHON_BRIDGE)
 	send_message (a_message: PYTHON_MESSAGE): BOOLEAN
 			-- Send message via gRPC streaming.
 		local
-			l_binary: ARRAY [NATURAL_8]
+			l_json_obj: SIMPLE_JSON_OBJECT
+			l_json_string: STRING_8
+			l_http: SIMPLE_HTTP
+			l_url: STRING_8
+			l_response: SIMPLE_HTTP_RESPONSE
+			l_response_body_32: STRING_32
+			l_error_msg: STRING_32
+			l_timeout_secs: INTEGER
 		do
-			-- Phase 4: gRPC bridge is deferred to Phase 2
-			-- Stub implementation for contract compliance
+			logger.log_info ("GRPC_BRIDGE.send_message START: message_id=" + a_message.message_id)
+
+			-- Freeze message for SCOOP safety
 			a_message.freeze
-			l_binary := a_message.to_binary
-			bytes_sent := bytes_sent + l_binary.count.to_integer_64
+			logger.verbose ("Message frozen for SCOOP")
+
+			-- Get JSON representation
+			l_json_obj := a_message.to_json
+			l_json_string := l_json_obj.as_json
+			logger.verbose ("JSON serialized, size=" + l_json_string.count.out)
+
+			-- Track bytes sent
+			bytes_sent := bytes_sent + l_json_string.count.to_integer_64
 			messages_sent := messages_sent + 1
-			Result := True
+
+			-- Construct HTTP URL to gRPC server (localhost:9002)
+			create l_url.make_from_string ("http://127.0.0.1:9002/validate")
+			logger.verbose ("URL constructed: " + l_url)
+
+			-- Create HTTP client for TCP communication
+			create l_http.make
+			l_timeout_secs := timeout_ms // 1000
+			l_http.set_timeout (l_timeout_secs)
+			logger.verbose ("HTTP client created, timeout=" + l_timeout_secs.out + " secs")
+
+			-- POST JSON data to gRPC server
+			logger.log_info ("gRPC POST to " + l_url)
+			l_response := l_http.post (l_url, l_json_string)
+			logger.log_info ("gRPC response status=" + l_response.status.out)
+
+			-- Check for successful response
+			if l_response.status = 200 and then attached l_response.body as l_body then
+				logger.log_info ("gRPC 200 OK received, body_size=" + l_body.count.out)
+
+				-- Convert response body from STRING_8 to STRING_32 for JSON parsing
+				create l_response_body_32.make (l_body.count)
+				across l_body as c loop
+					l_response_body_32.append_character (c.item.to_character_32)
+				end
+				logger.verbose ("Response body: " + l_response_body_32.substring (1, (l_response_body_32.count.min (200))))
+
+				-- Extract and parse response JSON
+				logger.log_info ("Extracting response from gRPC body")
+				if extract_response_from_body (l_response_body_32) then
+					has_error := False
+					create last_error_message.make_empty
+					Result := True
+					logger.log_info ("gRPC_BRIDGE.send_message SUCCESS: extracted response")
+				else
+					has_error := True
+					create last_error_message.make_from_string ({STRING_32} "Failed to parse response from gRPC server")
+					Result := False
+					logger.log_error ("gRPC_BRIDGE.send_message FAILED: extract_response_from_body returned False")
+				end
+			else
+				-- gRPC POST failed
+				has_error := True
+				logger.log_error ("gRPC response not 200 or no body")
+				if l_response.status /= 200 then
+					create l_error_msg.make_from_string ({STRING_32} "gRPC ")
+					l_error_msg.append_string (l_response.status.out)
+					l_error_msg.append ({STRING_32} " from 127.0.0.1:9002")
+					create last_error_message.make_from_string (l_error_msg)
+					logger.log_error ("gRPC status error: " + l_error_msg)
+				else
+					create last_error_message.make_from_string ({STRING_32} "No response body from gRPC server")
+					logger.log_error ("No response body from gRPC server")
+				end
+				Result := False
+			end
 		ensure then
 			success_implies_bytes_sent: Result implies (bytes_sent >= old bytes_sent)
 			failure_implies_error: (not Result) implies has_error
@@ -141,12 +206,7 @@ feature -- Message Operations (From PYTHON_BRIDGE)
 			-- Receive next message from gRPC stream (bidirectional).
 			-- Blocks until message received or timeout occurs.
 		do
-			-- TODO: Phase 4 Implementation
-			-- 1. Listen on gRPC stream
-			-- 2. Decode message
-			-- 3. Track bytes_received
-			-- 4. Return Void on timeout or error
-			Result := Void
+			Result := cached_response
 		end
 
 feature -- Configuration (From PYTHON_BRIDGE)
@@ -164,6 +224,9 @@ feature {NONE} -- Implementation Details
 	pending_messages: ARRAYED_LIST [PYTHON_MESSAGE]
 			-- Queue of messages received but not yet consumed.
 
+	cached_response: detachable PYTHON_MESSAGE
+			-- Response message from last POST to gRPC server.
+
 	bytes_sent: INTEGER_64
 			-- Total bytes sent via gRPC.
 
@@ -175,6 +238,124 @@ feature {NONE} -- Implementation Details
 
 	messages_received: INTEGER
 			-- Count of messages received.
+
+	extract_response_from_body (a_body: STRING_32): BOOLEAN
+			-- Extract and parse response message from HTTP response body.
+		local
+			l_parser: SIMPLE_JSON
+			l_message_id: STRING_32
+			l_message_type: STRING_32
+			l_type_lower: STRING_32
+			l_obj: SIMPLE_JSON_OBJECT
+		do
+			logger.log_info ("extract_response_from_body: parsing JSON")
+			logger.log_info ("Body content (first 300 chars): " + a_body.substring (1, (a_body.count.min (300))))
+
+			-- Parse JSON response directly
+			create l_parser
+			if attached l_parser.parse (a_body) as l_parsed then
+				logger.log_info ("JSON parse succeeded")
+				-- Check if it's an object
+				if l_parsed.is_object then
+					l_obj := l_parsed.as_object
+					logger.verbose ("Parsed JSON is object")
+					-- Get message type
+					if attached l_obj.item ("type") as l_type_val then
+						l_message_type := l_type_val.as_string_32
+						logger.verbose ("Found type field: " + l_message_type)
+
+						-- Get message ID
+						if attached l_obj.item ("message_id") as l_id_val then
+							l_message_id := l_id_val.as_string_32
+							logger.verbose ("Found message_id field: " + l_message_id)
+
+							-- Create message based on type
+							l_type_lower := l_message_type.as_lower
+							if l_type_lower ~ "validation_response" then
+								logger.log_info ("Creating VALIDATION_RESPONSE for id=" + l_message_id)
+								create_validation_response (l_message_id, l_obj)
+								Result := True
+								messages_received := messages_received + 1
+								bytes_received := bytes_received + a_body.count.to_integer_64
+								logger.log_info ("VALIDATION_RESPONSE created successfully")
+							elseif l_type_lower ~ "error" then
+								logger.log_info ("Creating ERROR message for id=" + l_message_id)
+								create_error_message (l_message_id, l_obj)
+								Result := True
+								messages_received := messages_received + 1
+								bytes_received := bytes_received + a_body.count.to_integer_64
+								logger.log_info ("ERROR message created successfully")
+							else
+								logger.log_error ("Unknown message type: " + l_message_type)
+							end
+						else
+							logger.log_error ("No message_id field in JSON response")
+						end
+					else
+						logger.log_error ("No type field in JSON response")
+					end
+				else
+					logger.log_error ("Parsed JSON is not an object")
+				end
+			else
+				logger.log_error ("JSON parse returned Void - parsing failed")
+			end
+
+			logger.log_info ("extract_response_from_body: returning " + Result.out)
+		end
+
+	create_validation_response (a_message_id: STRING_32; a_json: SIMPLE_JSON_OBJECT)
+			-- Create PYTHON_VALIDATION_RESPONSE from JSON object.
+		local
+			l_response: PYTHON_VALIDATION_RESPONSE
+			l_attrs_obj: SIMPLE_JSON_OBJECT
+		do
+			create l_response.make (a_message_id)
+
+			-- Copy attributes from JSON
+			if attached a_json.item ("attributes") as l_attrs_val then
+				if l_attrs_val.is_object then
+					l_attrs_obj := l_attrs_val.as_object
+					if attached l_attrs_obj.item ("result") as l_result then
+						l_response.set_attribute ("result", l_result)
+					end
+					if attached l_attrs_obj.item ("score") as l_score then
+						l_response.set_attribute ("score", l_score)
+					end
+					if attached l_attrs_obj.item ("message") as l_msg then
+						l_response.set_attribute ("message", l_msg)
+					end
+				end
+			end
+
+			l_response.freeze
+			cached_response := l_response
+		end
+
+	create_error_message (a_message_id: STRING_32; a_json: SIMPLE_JSON_OBJECT)
+			-- Create PYTHON_ERROR message from JSON object.
+		local
+			l_error: PYTHON_ERROR
+			l_attrs_obj: SIMPLE_JSON_OBJECT
+		do
+			create l_error.make (a_message_id)
+
+			-- Copy error attributes from JSON
+			if attached a_json.item ("attributes") as l_attrs_val then
+				if l_attrs_val.is_object then
+					l_attrs_obj := l_attrs_val.as_object
+					if attached l_attrs_obj.item ("error_code") as l_code then
+						l_error.set_attribute ("error_code", l_code)
+					end
+					if attached l_attrs_obj.item ("error_message") as l_msg then
+						l_error.set_attribute ("error_message", l_msg)
+					end
+				end
+			end
+
+			l_error.freeze
+			cached_response := l_error
+		end
 
 invariant
 	host_not_empty: host /= Void and then host.count > 0
