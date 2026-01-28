@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Architecture - simple_python</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>simple_python</h1>
+        <p class="tagline">Architecture & Design</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="quick.html">QUICK API</a></li>
+            <li><a href="user-guide.html">User Guide</a></li>
+            <li><a href="api-reference.html">API Reference</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="cookbook.html">Cookbook</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_python">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section>
+            <h2>Design Principles</h2>
+            <ul>
+                <li><strong>Bridge Pattern:</strong> Pluggable transport protocols (HTTP, IPC, gRPC)</li>
+                <li><strong>Facade Pattern:</strong> Simple SIMPLE_PYTHON entry point hides complexity</li>
+                <li><strong>Design by Contract:</strong> Complete preconditions, postconditions, invariants</li>
+                <li><strong>Void Safety:</strong> All code is null-safe with detachable/attached types</li>
+                <li><strong>SCOOP Safe:</strong> Message freeze mechanism for concurrent safety</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Class Hierarchy</h2>
+
+            <h3>Text Diagram</h3>
+            <pre><code>SIMPLE_PYTHON (Facade)
+    |
+    +-- creates --> HTTP_PYTHON_BRIDGE
+    |
+    +-- creates --> IPC_PYTHON_BRIDGE
+    |
+    +-- creates --> GRPC_PYTHON_BRIDGE
+
+All bridges inherit from:
+
+    PYTHON_BRIDGE (Abstract Interface)
+        |
+        +-- initialize: BOOLEAN
+        +-- close: void
+        +-- send_message: BOOLEAN
+        +-- receive_message: PYTHON_MESSAGE
+        +-- set_timeout: void
+        +-- status queries (is_initialized, is_connected, has_error, etc.)
+
+Messages inherit from:
+
+    PYTHON_MESSAGE (Abstract Base)
+        |
+        +-- PYTHON_VALIDATION_REQUEST
+        |
+        +-- PYTHON_VALIDATION_RESPONSE
+        |
+        +-- PYTHON_ERROR
+
+Message structure:
+    - message_id: STRING_32
+    - type: STRING_32
+    - timestamp: DATE_TIME
+    - attributes: HASH_TABLE [SIMPLE_JSON_VALUE, STRING_32]
+</code></pre>
+
+            <h3>Architecture Diagram</h3>
+            <pre><code>┌─────────────────────────────────────────────────────────┐
+│                   Eiffel Application                      │
+└──────────────────────────┬────────────────────────────────┘
+                           │ creates
+                           ▼
+┌─────────────────────────────────────────────────────────┐
+│            SIMPLE_PYTHON (Facade)                       │
+│  new_http_bridge()                                      │
+│  new_ipc_bridge()                                       │
+│  new_grpc_bridge()                                      │
+└──────────────────┬──────────────────┬──────────────────┘
+                   │                  │
+         ┌─────────▼──┐     ┌────────▼──┐
+         │             │     │            │
+    ┌────▼─────┐  ┌───▼────┐ ┌───▼──────┐
+    │  HTTP    │  │  IPC   │ │  gRPC   │
+    │ Bridge   │  │ Bridge │ │ Bridge  │
+    └────┬─────┘  └───┬────┘ └───┬─────┘
+         │            │          │
+         └────────────┼──────────┘
+                      │
+             ┌────────▼─────────┐
+             │  PYTHON_BRIDGE   │
+             │  (Interface)     │
+             │                  │
+             │  initialize()    │
+             │  send_message()  │
+             │  receive_msg()   │
+             │  close()         │
+             └──────────────────┘
+                      │
+        ┌─────────────┼──────────────┐
+        │             │              │
+     ┌──▼──┐    ┌─────▼────┐    ┌───▼──────┐
+     │ REQ │    │ RESPONSE │    │  ERROR   │
+     └─────┘    └──────────┘    └──────────┘
+        │             │              │
+        └─────────────┼──────────────┘
+                      │
+             ┌────────▼──────────┐
+             │ PYTHON_MESSAGE    │
+             │ (Base Class)       │
+             │                    │
+             │ set_attribute()    │
+             │ get_attribute()    │
+             │ freeze()           │
+             │ to_json()          │
+             │ to_binary()        │
+             └────────────────────┘
+</code></pre>
+        </section>
+
+        <section>
+            <h2>Data Flow</h2>
+
+            <h3>Sending a Message</h3>
+            <pre><code>1. Application creates message:
+   create l_request.make ("id_123")
+
+2. Application adds attributes:
+   l_request.set_attribute ("board", "PCB-001")
+
+3. Application freezes (SCOOP safety):
+   l_request.freeze
+
+4. Bridge encodes:
+   - HTTP: to_json() → JSON string
+   - IPC: to_binary() → 4-byte length prefix + binary
+
+5. Bridge transmits:
+   - HTTP: sends via HTTP/1.1
+   - IPC: writes to named pipe
+   - gRPC: sends via gRPC
+
+6. Python receives and processes
+</code></pre>
+
+            <h3>Receiving a Message</h3>
+            <pre><code>1. Bridge receives data:
+   - HTTP: receives HTTP response
+   - IPC: reads from named pipe (4-byte length prefix)
+   - gRPC: receives via gRPC
+
+2. Bridge decodes:
+   - HTTP: JSON → PYTHON_MESSAGE
+   - IPC: Extract payload from frame
+   - gRPC: Deserialize from gRPC
+
+3. Application receives:
+   l_response := l_bridge.receive_message
+
+4. Application type-checks:
+   if attached {PYTHON_VALIDATION_RESPONSE} l_response as l_resp then
+       -- Process response
+   end
+</code></pre>
+        </section>
+
+        <section>
+            <h2>Message Serialization</h2>
+
+            <h3>JSON Format</h3>
+            <pre><code>{
+  "message_id": "validation_001",
+  "type": "validation_request",
+  "timestamp": "2026-01-28T12:34:56",
+  "attributes": {
+    "board_id": "PCB-001",
+    "temperature": 45,
+    "voltage": 3.3
+  }
+}
+</code></pre>
+
+            <h3>Binary Format (IPC)</h3>
+            <pre><code>┌─────────────┬──────────────────────────────┐
+│   Length    │         JSON (UTF-8)         │
+│  (4 bytes)  │  ← as_string_32.to_utf_8     │
+│ Big-Endian  │                              │
+└─────────────┴──────────────────────────────┘
+
+Example:
+  Bytes 1-4: 0x00 0x00 0x01 0x2A  (298 bytes of JSON)
+  Bytes 5+:  JSON content as UTF-8 string
+</code></pre>
+
+            <h3>Freeze Mechanism (SCOOP Safety)</h3>
+            <pre><code>Before freeze:
+  - Attributes can be modified
+  - freeze() method available
+  - is_frozen = false
+
+After freeze:
+  - Attributes read-only
+  - set_attribute() precondition fails
+  - is_frozen = true
+  - Safe to pass to separate objects in SCOOP
+  - to_json() and to_binary() available
+</code></pre>
+        </section>
+
+        <section>
+            <h2>Bridge Lifecycle</h2>
+
+            <h3>HTTP Bridge</h3>
+            <pre><code>1. Create: new_http_bridge("host", port)
+   - Unconfigured, not connected
+   - is_initialized = false
+
+2. Configure (optional):
+   - set_timeout(milliseconds)
+
+3. Initialize:
+   - if bridge.initialize then
+   - is_initialized = true
+   - is_connected = true
+
+4. Send/Receive:
+   - bridge.send_message(request): BOOLEAN
+   - bridge.receive_message(): PYTHON_MESSAGE
+
+5. Close:
+   - bridge.close()
+   - is_connected = false
+</code></pre>
+
+            <h3>IPC Bridge</h3>
+            <pre><code>Same as HTTP, but:
+- Windows only
+- Named pipe name instead of host/port
+- Ultra-low latency (≤10ms)
+- Same-machine only
+
+Typical pipe name:
+  "\\.\\pipe\\eiffel_python_ipc"
+
+Performance SLA:
+  - Response time: ≤10ms (p95) for 1KB
+  - Throughput: ≥10,000 messages/sec
+</code></pre>
+        </section>
+
+        <section>
+            <h2>Design by Contract</h2>
+
+            <h3>Message Preconditions</h3>
+            <pre><code>freeze:
+  -- No preconditions, always allowed
+
+set_attribute:
+  require
+    not_frozen: not is_frozen  -- Can't modify frozen messages
+
+send_message:
+  require
+    a_message.is_frozen  -- Message must be frozen
+</code></pre>
+
+            <h3>Message Postconditions</h3>
+            <pre><code>freeze:
+  ensure
+    frozen: is_frozen
+
+to_json:
+  ensure
+    has_id: Result.has_key ("message_id")
+    has_type: Result.has_key ("type")
+    has_timestamp: Result.has_key ("timestamp")
+    has_attributes: Result.has_key ("attributes")
+
+to_binary:
+  ensure
+    large_enough: Result.count > 4  -- At least length prefix
+</code></pre>
+
+            <h3>Bridge Invariants</h3>
+            <pre><code>invariant
+    timeout_positive: timeout_ms > 0
+    error_consistency: has_error = (last_error_message.count > 0)
+    connected_implies_init: is_connected implies is_initialized
+</code></pre>
+        </section>
+
+        <section>
+            <h2>SCOOP (Concurrent Safety)</h2>
+
+            <h3>Thread-Safe Message Handling</h3>
+            <pre><code>-- Safe to pass frozen message to separate object:
+separate l_bridge do
+    l_bridge.send_message (l_request)  -- Request is frozen
+end
+
+-- Not safe to modify after freeze in separate context:
+separate l_request do
+    l_request.set_attribute (...)  -- Precondition violation!
+end
+</code></pre>
+
+            <h3>Message Immutability</h3>
+            <p>The freeze mechanism ensures:</p>
+            <ul>
+                <li>No modifications after freeze</li>
+                <li>Safe sharing across SCOOP regions</li>
+                <li>Contract-enforced read-only semantics</li>
+                <li>No race conditions on message attributes</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Extension Points</h2>
+
+            <h3>Adding New Bridge Types</h3>
+            <p>To add a new transport protocol (e.g., WebSocket):</p>
+            <ol>
+                <li>Create class WEBSOCKET_PYTHON_BRIDGE inheriting from PYTHON_BRIDGE</li>
+                <li>Implement all PYTHON_BRIDGE features</li>
+                <li>Add factory method to SIMPLE_PYTHON:
+                    <pre><code>new_websocket_bridge (a_url: STRING_32): WEBSOCKET_PYTHON_BRIDGE</code></pre>
+                </li>
+                <li>Add tests to TEST_APP</li>
+            </ol>
+        </section>
+
+        <section>
+            <h2>Performance Characteristics</h2>
+
+            <h3>HTTP Bridge</h3>
+            <ul>
+                <li>Latency: 10-100ms (network dependent)</li>
+                <li>Best for: Remote systems, web integration</li>
+                <li>Pros: Standard protocol, firewall-friendly</li>
+                <li>Cons: Network overhead</li>
+            </ul>
+
+            <h3>IPC Bridge</h3>
+            <ul>
+                <li>Latency: ≤10ms (p95) for 1KB</li>
+                <li>Throughput: ≥10,000 messages/sec</li>
+                <li>Best for: Same-machine, ultra-low-latency</li>
+                <li>Pros: Fastest, zero network overhead</li>
+                <li>Cons: Windows only, same machine only</li>
+            </ul>
+
+            <h3>gRPC Bridge</h3>
+            <ul>
+                <li>Latency: 1-10ms (LAN dependent)</li>
+                <li>Throughput: ≥100,000 messages/sec</li>
+                <li>Best for: High-throughput, cross-platform</li>
+                <li>Pros: Efficient binary protocol, streaming</li>
+                <li>Cons: Requires gRPC Python service</li>
+            </ul>
+        </section>
+
+        <footer>
+            <p>&copy; 2026 Simple Eiffel Contributors. MIT License.</p>
+        </footer>
+    </main>
+</body>
+</html>

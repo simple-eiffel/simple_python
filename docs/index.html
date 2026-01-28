@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>simple_python - Eiffel-Python Bridge</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <div class="logo-container">
+            <h1>simple_python</h1>
+        </div>
+        <p class="tagline">Ultra-low-latency Eiffel-Python communication via HTTP, IPC, or gRPC</p>
+        <div class="badges">
+            <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
+            <img src="https://img.shields.io/badge/Eiffel-25.02-purple.svg" alt="Eiffel 25.02">
+            <img src="https://img.shields.io/badge/DBC-Contracts-green.svg" alt="Design by Contract">
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#overview">Overview</a></li>
+            <li><a href="quick.html">QUICK API</a></li>
+            <li><a href="user-guide.html">User Guide</a></li>
+            <li><a href="api-reference.html">API Reference</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="cookbook.html">Cookbook</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_python">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="overview">
+            <h2>Overview</h2>
+            <p>
+                <strong>simple_python</strong> is a production-ready Eiffel library for communicating with Python orchestration systems.
+                It provides three pluggable transport protocols: HTTP, IPC (Windows named pipes), and gRPC.
+            </p>
+            <p>
+                Perfect for validation workflows where Eiffel hardware control boards need to communicate with Python machine-learning pipelines
+                with guaranteed ultra-low latency (&le;10ms p95 for 1KB payloads via IPC).
+            </p>
+            <p>
+                Part of the <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem.
+            </p>
+        </section>
+
+        <section id="features">
+            <h2>Features</h2>
+            <ul>
+                <li><strong>Multiple Transports:</strong> HTTP, IPC (Windows pipes), gRPC (pluggable design)</li>
+                <li><strong>Message Types:</strong> Validation requests/responses with custom attributes</li>
+                <li><strong>Serialization:</strong> JSON and binary formats with 4-byte length prefix framing</li>
+                <li><strong>SCOOP-Safe:</strong> Concurrent-ready message handling for multi-threaded Eiffel systems</li>
+                <li><strong>Design by Contract:</strong> Complete preconditions, postconditions, and invariants</li>
+                <li><strong>Void-Safe:</strong> Full null-safety with detachable/attached type checking</li>
+            </ul>
+        </section>
+
+        <section id="status">
+            <h2>Status</h2>
+            <p><strong>v1.0.0 - Production Ready</strong></p>
+            <ul>
+                <li>27 tests passing (100% pass rate)</li>
+                <li>Design by Contract throughout</li>
+                <li>SCOOP-compatible (concurrent-safe)</li>
+                <li>Void-safe (null-safety)</li>
+                <li>Zero compilation warnings</li>
+            </ul>
+        </section>
+
+        <section id="quick-start">
+            <h2>Quick Start</h2>
+            <p>See <a href="quick.html">Quick API</a> for immediate examples and basic usage patterns.</p>
+        </section>
+
+        <footer>
+            <p>&copy; 2026 Simple Eiffel Contributors. MIT License.</p>
+            <p><a href="https://github.com/simple-eiffel/simple_python">GitHub Repository</a></p>
+        </footer>
+    </main>
+</body>
+</html>

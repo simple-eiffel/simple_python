@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Reference - simple_python</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>simple_python</h1>
+        <p class="tagline">API Reference</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="quick.html">QUICK API</a></li>
+            <li><a href="user-guide.html">User Guide</a></li>
+            <li><a href="api-reference.html">API Reference</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="cookbook.html">Cookbook</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_python">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section>
+            <h2>SIMPLE_PYTHON (Facade)</h2>
+            <p>Main entry point for creating bridges and accessing library functionality.</p>
+
+            <h3>Creation</h3>
+            <pre><code>create l_lib.make
+    -- Create library instance (unconfigured)</code></pre>
+
+            <h3>Features</h3>
+
+            <h4>new_http_bridge (a_host: STRING_32; a_port: INTEGER): HTTP_PYTHON_BRIDGE</h4>
+            <p>Create HTTP bridge to specified host and port.</p>
+            <pre><code>l_bridge := l_lib.new_http_bridge ("localhost", 8080)</code></pre>
+
+            <h4>new_ipc_bridge (a_pipe_name: STRING_32): IPC_PYTHON_BRIDGE</h4>
+            <p>Create IPC bridge using Windows named pipe.</p>
+            <pre><code>l_bridge := l_lib.new_ipc_bridge ("\\.\\pipe\\eiffel_python")</code></pre>
+
+            <h4>new_grpc_bridge (a_host: STRING_32; a_port: INTEGER): GRPC_PYTHON_BRIDGE</h4>
+            <p>Create gRPC bridge (Phase 2).</p>
+            <pre><code>l_bridge := l_lib.new_grpc_bridge ("localhost", 50051)</code></pre>
+        </section>
+
+        <section>
+            <h2>PYTHON_BRIDGE (Interface)</h2>
+            <p>Abstract interface implemented by all bridge types (HTTP, IPC, gRPC).</p>
+
+            <h3>Lifecycle</h3>
+
+            <h4>initialize: BOOLEAN</h4>
+            <p>Initialize bridge and prepare for communication.</p>
+            <pre><code>if l_bridge.initialize then
+    print ("Bridge initialized%N")
+else
+    print ("Initialization failed%N")
+end</code></pre>
+            <p><strong>Postcondition:</strong> If successful, is_initialized and is_connected both true.</p>
+
+            <h4>close</h4>
+            <p>Close bridge and disconnect.</p>
+            <pre><code>l_bridge.close</code></pre>
+            <p><strong>Postcondition:</strong> is_connected becomes false.</p>
+
+            <h3>Configuration</h3>
+
+            <h4>set_timeout (a_timeout_ms: INTEGER)</h4>
+            <p>Set receive timeout in milliseconds.</p>
+            <pre><code>l_bridge.set_timeout (5000)  -- 5 seconds</code></pre>
+
+            <h3>Messaging</h3>
+
+            <h4>send_message (a_message: PYTHON_MESSAGE): BOOLEAN</h4>
+            <p>Send message via bridge.</p>
+            <p><strong>Precondition:</strong> Message must be frozen (require: a_message.is_frozen)</p>
+            <p><strong>Returns:</strong> True if send successful, false if error occurred.</p>
+            <pre><code>l_request.freeze
+if l_bridge.send_message (l_request) then
+    print ("Sent%N")
+end</code></pre>
+
+            <h4>receive_message: detachable PYTHON_MESSAGE</h4>
+            <p>Receive next message from bridge (blocking).</p>
+            <p><strong>Returns:</strong> Message if received, Void if timeout.</p>
+            <pre><code>l_message := l_bridge.receive_message
+if l_message /= Void then
+    print ("Received%N")
+end</code></pre>
+
+            <h3>Status Queries</h3>
+
+            <h4>is_initialized: BOOLEAN</h4>
+            <p>Is bridge initialized and ready?</p>
+
+            <h4>is_connected: BOOLEAN</h4>
+            <p>Is bridge currently connected?</p>
+
+            <h4>has_error: BOOLEAN</h4>
+            <p>Did last operation fail?</p>
+
+            <h4>last_error_message: STRING_32</h4>
+            <p>Human-readable error from last operation.</p>
+
+            <h4>active_connections: INTEGER</h4>
+            <p>Number of currently active connections.</p>
+            <p><strong>Postcondition:</strong> Result &ge; 0 and &le; 10000</p>
+
+            <h4>timeout_ms: INTEGER</h4>
+            <p>Current receive timeout in milliseconds.</p>
+        </section>
+
+        <section>
+            <h2>PYTHON_MESSAGE (Base Message)</h2>
+            <p>Abstract base class for all message types.</p>
+
+            <h3>Creation</h3>
+            <pre><code>-- Base class (deferred), use subclasses:
+create l_request.make ("unique_id")</code></pre>
+
+            <h3>Attributes</h3>
+
+            <h4>message_id: STRING_32</h4>
+            <p>Unique message identifier.</p>
+
+            <h4>message_type: STRING_32</h4>
+            <p>Message type (validation_request, validation_response, error).</p>
+
+            <h4>timestamp: DATE_TIME</h4>
+            <p>Message creation timestamp.</p>
+
+            <h3>Features</h3>
+
+            <h4>set_attribute (a_key: STRING_32; a_value: SIMPLE_JSON_VALUE)</h4>
+            <p>Add/update attribute.</p>
+            <p><strong>Precondition:</strong> Message must not be frozen (require: not is_frozen)</p>
+            <pre><code>create l_factory
+l_msg.set_attribute ("status", l_factory.string_value ("ready"))</code></pre>
+
+            <h4>get_attribute (a_key: STRING_32): detachable SIMPLE_JSON_VALUE</h4>
+            <p>Get attribute value by key.</p>
+            <pre><code>if attached l_msg.get_attribute ("status") as l_status then
+    print (l_status.as_string_32 + "%N")
+end</code></pre>
+
+            <h4>has_attribute (a_key: STRING_32): BOOLEAN</h4>
+            <p>Check if attribute exists.</p>
+
+            <h4>attribute_count: INTEGER</h4>
+            <p>Number of attributes in message.</p>
+
+            <h4>freeze</h4>
+            <p>Freeze message to prepare for transmission (SCOOP-safe).</p>
+            <p><strong>Postcondition:</strong> is_frozen becomes true</p>
+            <pre><code>l_msg.freeze  -- Now safe to send in SCOOP context</code></pre>
+
+            <h4>is_frozen: BOOLEAN</h4>
+            <p>Is message frozen (read-only)?</p>
+
+            <h4>to_json: SIMPLE_JSON_OBJECT</h4>
+            <p>Serialize message to JSON.</p>
+            <p><strong>Precondition:</strong> Message must be frozen (require: is_frozen)</p>
+            <p><strong>Postcondition:</strong> Result contains message_id, type, timestamp, attributes</p>
+
+            <h4>to_binary: ARRAY [NATURAL_8]</h4>
+            <p>Serialize message to binary (JSON + 4-byte big-endian length prefix).</p>
+            <p><strong>Precondition:</strong> Message must be frozen (require: is_frozen)</p>
+            <p><strong>Postcondition:</strong> Result.count &gt; 4 (at least length prefix)</p>
+        </section>
+
+        <section>
+            <h2>PYTHON_VALIDATION_REQUEST</h2>
+            <p>Validation request message type.</p>
+
+            <h3>Creation</h3>
+            <pre><code>create l_request.make ("pcb_validation_001")</code></pre>
+
+            <h3>Inherited from PYTHON_MESSAGE</h3>
+            <p>All PYTHON_MESSAGE features available:</p>
+            <ul>
+                <li>set_attribute, get_attribute, has_attribute</li>
+                <li>freeze, is_frozen</li>
+                <li>to_json, to_binary</li>
+                <li>message_id, message_type, timestamp, attribute_count</li>
+            </ul>
+
+            <h3>Example</h3>
+            <pre><code>create l_request.make ("board_001")
+l_request.set_attribute ("test_mode", l_factory.string_value ("automated"))
+l_request.freeze
+l_bridge.send_message (l_request)</code></pre>
+        </section>
+
+        <section>
+            <h2>PYTHON_VALIDATION_RESPONSE</h2>
+            <p>Validation response message type from Python.</p>
+
+            <h3>Creation</h3>
+            <pre><code>create l_response.make ("response_id_001")</code></pre>
+
+            <h3>Example</h3>
+            <pre><code>l_message := l_bridge.receive_message
+if attached {PYTHON_VALIDATION_RESPONSE} l_message as l_response then
+    if attached l_response.get_attribute ("result") as l_result then
+        print ("Result: " + l_result.as_string_32 + "%N")
+    end
+end</code></pre>
+        </section>
+
+        <section>
+            <h2>PYTHON_ERROR</h2>
+            <p>Error message from Python system.</p>
+
+            <h3>Creation</h3>
+            <pre><code>create l_error.make ("error_id_001")</code></pre>
+
+            <h3>Typical Fields</h3>
+            <ul>
+                <li><strong>error_code:</strong> Error code from Python</li>
+                <li><strong>error_message:</strong> Human-readable error description</li>
+                <li><strong>traceback:</strong> Optional Python stack trace</li>
+            </ul>
+
+            <h3>Example</h3>
+            <pre><code>if attached {PYTHON_ERROR} l_message as l_error then
+    print ("Error: " + l_error.message_id + "%N")
+    if attached l_error.get_attribute ("error_message") as l_msg then
+        print (l_msg.as_string_32 + "%N")
+    end
+end</code></pre>
+        </section>
+
+        <section>
+            <h2>HTTP_PYTHON_BRIDGE</h2>
+            <p>Implements PYTHON_BRIDGE using HTTP/1.1 JSON protocol.</p>
+
+            <h3>Creation</h3>
+            <pre><code>l_bridge := l_lib.new_http_bridge ("ml.example.com", 8080)</code></pre>
+
+            <h3>Specific Features</h3>
+            <p>Inherits all PYTHON_BRIDGE features. No additional public features.</p>
+
+            <h3>Typical Workflow</h3>
+            <pre><code>l_bridge := l_lib.new_http_bridge ("localhost", 8080)
+l_bridge.set_timeout (5000)
+if l_bridge.initialize then
+    l_request.freeze
+    if l_bridge.send_message (l_request) then
+        l_response := l_bridge.receive_message
+    end
+    l_bridge.close
+end</code></pre>
+        </section>
+
+        <section>
+            <h2>IPC_PYTHON_BRIDGE</h2>
+            <p>Implements PYTHON_BRIDGE using Windows named pipes.</p>
+
+            <h3>Creation</h3>
+            <pre><code>l_bridge := l_lib.new_ipc_bridge ("\\.\\pipe\\python_ipc")</code></pre>
+
+            <h3>Performance</h3>
+            <ul>
+                <li>Latency: &le;10ms p95 for 1KB payloads</li>
+                <li>Throughput: &ge;10,000 messages/sec</li>
+                <li>Same-machine only (Windows)</li>
+            </ul>
+
+            <h3>Message Framing</h3>
+            <p>Internal: 4-byte big-endian length prefix + binary payload.</p>
+        </section>
+
+        <section>
+            <h2>GRPC_PYTHON_BRIDGE</h2>
+            <p>Implements PYTHON_BRIDGE using gRPC (Phase 2, extensible design).</p>
+
+            <h3>Creation</h3>
+            <pre><code>l_bridge := l_lib.new_grpc_bridge ("localhost", 50051)</code></pre>
+
+            <h3>Note</h3>
+            <p>Full gRPC implementation available in Phase 2. Current implementation supports
+            pluggable protocol architecture for future expansion.</p>
+        </section>
+
+        <footer>
+            <p>&copy; 2026 Simple Eiffel Contributors. MIT License.</p>
+        </footer>
+    </main>
+</body>
+</html>

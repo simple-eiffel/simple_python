@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cookbook - simple_python</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>simple_python</h1>
+        <p class="tagline">Code Examples & Recipes</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="quick.html">QUICK API</a></li>
+            <li><a href="user-guide.html">User Guide</a></li>
+            <li><a href="api-reference.html">API Reference</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="cookbook.html">Cookbook</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_python">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section>
+            <h2>Recipe 1: Simple HTTP Validation</h2>
+            <p>Basic example: send a validation request via HTTP and receive response.</p>
+            <pre><code>class HTTP_VALIDATION_EXAMPLE
+create
+    make
+
+feature
+    make
+        local
+            l_lib: SIMPLE_PYTHON
+            l_bridge: HTTP_PYTHON_BRIDGE
+            l_request: PYTHON_VALIDATION_REQUEST
+            l_response: detachable PYTHON_MESSAGE
+            l_factory: SIMPLE_JSON
+        do
+            create l_lib.make
+            l_bridge := l_lib.new_http_bridge ("localhost", 8080)
+
+            if l_bridge.initialize then
+                print ("HTTP bridge connected%N")
+
+                -- Create request
+                create l_request.make ("validation_001")
+                create l_factory
+                l_request.set_attribute ("board_id", l_factory.string_value ("PCB-001"))
+                l_request.freeze
+
+                -- Send
+                if l_bridge.send_message (l_request) then
+                    print ("Request sent%N")
+
+                    -- Receive
+                    l_response := l_bridge.receive_message
+                    if l_response /= Void then
+                        print ("Response received%N")
+                    end
+                else
+                    print ("Send failed: " + l_bridge.last_error_message + "%N")
+                end
+
+                l_bridge.close
+            else
+                print ("Connection failed%N")
+            end
+        end
+
+end</code></pre>
+        </section>
+
+        <section>
+            <h2>Recipe 2: Ultra-Low-Latency IPC Validation</h2>
+            <p>High-performance same-machine communication using Windows named pipes.</p>
+            <pre><code>class IPC_VALIDATION_EXAMPLE
+create
+    make
+
+feature
+    make
+        local
+            l_lib: SIMPLE_PYTHON
+            l_bridge: IPC_PYTHON_BRIDGE
+            l_request: PYTHON_VALIDATION_REQUEST
+            l_response: detachable PYTHON_MESSAGE
+            l_factory: SIMPLE_JSON
+        do
+            create l_lib.make
+            -- Ultra-low-latency IPC bridge
+            l_bridge := l_lib.new_ipc_bridge ("\\.\\pipe\\eiffel_python_ipc")
+
+            -- Short timeout (local communication)
+            l_bridge.set_timeout (1000)  -- 1 second
+
+            if l_bridge.initialize then
+                print ("IPC bridge ready (ultra-low-latency)%N")
+
+                create l_request.make ("ipc_validation_001")
+                create l_factory
+                l_request.set_attribute ("temperature", l_factory.integer_value (45))
+                l_request.set_attribute ("voltage", l_factory.number_value (3.3))
+                l_request.freeze
+
+                if l_bridge.send_message (l_request) then
+                    print ("Sent (≤10ms latency expected)%N")
+                    l_response := l_bridge.receive_message
+                    if l_response /= Void then
+                        print ("Response received (ultra-fast)%N")
+                    else
+                        print ("Timeout after 1 second%N")
+                    end
+                end
+
+                l_bridge.close
+            end
+        end
+
+end</code></pre>
+        </section>
+
+        <section>
+            <h2>Recipe 3: Error Handling</h2>
+            <p>Proper error handling with fallback strategies.</p>
+            <pre><code>class ERROR_HANDLING_EXAMPLE
+create
+    make
+
+feature
+    make
+        local
+            l_lib: SIMPLE_PYTHON
+            l_bridge: HTTP_PYTHON_BRIDGE
+            l_request: PYTHON_VALIDATION_REQUEST
+            l_response: detachable PYTHON_MESSAGE
+            l_factory: SIMPLE_JSON
+        do
+            create l_lib.make
+            l_bridge := l_lib.new_http_bridge ("ml.example.com", 8080)
+
+            -- Try initialization
+            if not l_bridge.initialize then
+                print ("Failed to connect: " + l_bridge.last_error_message + "%N")
+                return
+            end
+
+            create l_request.make ("request_001")
+            create l_factory
+            l_request.set_attribute ("data", l_factory.string_value ("test"))
+            l_request.freeze
+
+            -- Try send
+            if not l_bridge.send_message (l_request) then
+                print ("Send failed: " + l_bridge.last_error_message + "%N")
+                l_bridge.close
+                return
+            end
+
+            -- Try receive with timeout
+            l_response := l_bridge.receive_message
+            if l_response = Void then
+                print ("Timeout: no response after " + l_bridge.timeout_ms.out + "ms%N")
+            elseif attached {PYTHON_ERROR} l_response as l_error then
+                -- Handle Python error response
+                if attached l_error.get_attribute ("error_message") as l_msg then
+                    print ("Python error: " + l_msg.as_string_32 + "%N")
+                end
+            elseif attached {PYTHON_VALIDATION_RESPONSE} l_response as l_success then
+                print ("Success%N")
+            end
+
+            l_bridge.close
+        end
+
+end</code></pre>
+        </section>
+
+        <section>
+            <h2>Recipe 4: Batch Processing</h2>
+            <p>Send multiple validation requests in sequence.</p>
+            <pre><code>class BATCH_VALIDATION_EXAMPLE
+create
+    make
+
+feature
+    make
+        local
+            l_lib: SIMPLE_PYTHON
+            l_bridge: HTTP_PYTHON_BRIDGE
+            l_factory: SIMPLE_JSON
+            l_i: INTEGER
+        do
+            create l_lib.make
+            l_bridge := l_lib.new_http_bridge ("localhost", 8080)
+
+            if l_bridge.initialize then
+                -- Process 100 boards
+                from l_i := 1
+                until l_i > 100
+                loop
+                    send_validation (l_bridge, "PCB-" + l_i.out, 40 + l_i)
+                    l_i := l_i + 1
+                end
+
+                l_bridge.close
+                print ("Batch complete%N")
+            end
+        end
+
+    send_validation (a_bridge: HTTP_PYTHON_BRIDGE; a_board_id: STRING_32; a_temp: INTEGER)
+        local
+            l_request: PYTHON_VALIDATION_REQUEST
+            l_factory: SIMPLE_JSON
+        do
+            create l_request.make ("batch_" + a_board_id)
+            create l_factory
+            l_request.set_attribute ("board_id", l_factory.string_value (a_board_id))
+            l_request.set_attribute ("temperature", l_factory.integer_value (a_temp))
+            l_request.freeze
+
+            if a_bridge.send_message (l_request) then
+                print ("Sent: " + a_board_id + "%N")
+            end
+        end
+
+end</code></pre>
+        </section>
+
+        <section>
+            <h2>Recipe 5: SCOOP-Safe Message Handling</h2>
+            <p>Concurrent message handling in SCOOP-enabled Eiffel systems.</p>
+            <pre><code>class SCOOP_VALIDATION_EXAMPLE
+create
+    make
+
+feature
+    make
+        local
+            l_lib: SIMPLE_PYTHON
+            l_bridge: separate HTTP_PYTHON_BRIDGE
+            l_request: PYTHON_VALIDATION_REQUEST
+        do
+            create l_lib.make
+            l_bridge := l_lib.new_http_bridge ("localhost", 8080)
+
+            if l_bridge.initialize then
+                create l_request.make ("scoop_test")
+
+                -- Create request in main region
+                create {SIMPLE_JSON} l_factory
+                l_request.set_attribute ("test", l_factory.string_value ("data"))
+
+                -- Critical: freeze before passing to separate object
+                l_request.freeze
+
+                -- Now safe to send in separate region (SCOOP-safe)
+                separate l_bridge do
+                    l_bridge.send_message (l_request)
+                end
+
+                separate l_bridge do
+                    l_bridge.close
+                end
+            end
+        end
+
+end</code></pre>
+            <p><strong>Key principle:</strong> Always freeze messages before passing them to separate (concurrent) objects.</p>
+        </section>
+
+        <section>
+            <h2>Recipe 6: Custom Attributes</h2>
+            <p>Add and retrieve complex attribute values.</p>
+            <pre><code>class CUSTOM_ATTRIBUTES_EXAMPLE
+create
+    make
+
+feature
+    make
+        local
+            l_request: PYTHON_VALIDATION_REQUEST
+            l_factory: SIMPLE_JSON
+            l_attr: SIMPLE_JSON_VALUE
+        do
+            create l_request.make ("custom_attrs")
+            create l_factory
+
+            -- String attribute
+            l_request.set_attribute ("operator", l_factory.string_value ("John Doe"))
+
+            -- Integer attribute
+            l_request.set_attribute ("batch_number", l_factory.integer_value (42))
+
+            -- Float attribute
+            l_request.set_attribute ("threshold", l_factory.number_value (0.95))
+
+            -- Boolean attribute (represented as integer: 0 or 1)
+            l_request.set_attribute ("auto_mode", l_factory.integer_value (1))
+
+            -- Freeze for transmission
+            l_request.freeze
+
+            -- Retrieve attributes
+            if attached l_request.get_attribute ("operator") as l_op then
+                print ("Operator: " + l_op.as_string_32 + "%N")
+            end
+
+            if attached l_request.get_attribute ("batch_number") as l_batch then
+                print ("Batch: " + l_batch.as_string_32 + "%N")
+            end
+
+            print ("Total attributes: " + l_request.attribute_count.out + "%N")
+        end
+
+end</code></pre>
+        </section>
+
+        <section>
+            <h2>Recipe 7: Handling Different Response Types</h2>
+            <p>Process validation responses and errors appropriately.</p>
+            <pre><code>class RESPONSE_HANDLING_EXAMPLE
+create
+    make
+
+feature
+    make
+        local
+            l_lib: SIMPLE_PYTHON
+            l_bridge: HTTP_PYTHON_BRIDGE
+            l_message: detachable PYTHON_MESSAGE
+        do
+            create l_lib.make
+            l_bridge := l_lib.new_http_bridge ("localhost", 8080)
+
+            if l_bridge.initialize then
+                send_request (l_bridge)
+
+                l_message := l_bridge.receive_message
+                process_message (l_message)
+
+                l_bridge.close
+            end
+        end
+
+    send_request (a_bridge: HTTP_PYTHON_BRIDGE)
+        local
+            l_request: PYTHON_VALIDATION_REQUEST
+            l_factory: SIMPLE_JSON
+        do
+            create l_request.make ("response_test")
+            create l_factory
+            l_request.set_attribute ("test", l_factory.string_value ("data"))
+            l_request.freeze
+            a_bridge.send_message (l_request)
+        end
+
+    process_message (a_message: detachable PYTHON_MESSAGE)
+        do
+            if a_message = Void then
+                print ("Timeout: no response received%N")
+
+            elseif attached {PYTHON_VALIDATION_RESPONSE} a_message as l_response then
+                print ("Validation response received%N")
+                print ("Message ID: " + l_response.message_id + "%N")
+                print ("Attributes: " + l_response.attribute_count.out + "%N")
+
+                -- Process response-specific attributes
+                if attached l_response.get_attribute ("result") as l_result then
+                    print ("Result: " + l_result.as_string_32 + "%N")
+                end
+
+            elseif attached {PYTHON_ERROR} a_message as l_error then
+                print ("Error response received%N")
+                print ("Error ID: " + l_error.message_id + "%N")
+
+                -- Extract error details
+                if attached l_error.get_attribute ("error_message") as l_msg then
+                    print ("Error message: " + l_msg.as_string_32 + "%N")
+                end
+
+                if attached l_error.get_attribute ("error_code") as l_code then
+                    print ("Error code: " + l_code.as_string_32 + "%N")
+                end
+
+            else
+                print ("Unknown message type%N")
+            end
+        end
+
+end</code></pre>
+        </section>
+
+        <section>
+            <h2>Recipe 8: Reusing Bridges</h2>
+            <p>Efficient pattern for multiple operations on same bridge.</p>
+            <pre><code>class BRIDGE_REUSE_EXAMPLE
+create
+    make
+
+feature
+    make
+        local
+            l_lib: SIMPLE_PYTHON
+            l_bridge: HTTP_PYTHON_BRIDGE
+            l_count: INTEGER
+        do
+            create l_lib.make
+            l_bridge := l_lib.new_http_bridge ("localhost", 8080)
+
+            -- Single initialization
+            if l_bridge.initialize then
+                from l_count := 1
+                until l_count > 10
+                loop
+                    validate_board (l_bridge, "BOARD-" + l_count.out)
+                    l_count := l_count + 1
+                end
+
+                -- Single close
+                l_bridge.close
+            end
+        end
+
+    validate_board (a_bridge: HTTP_PYTHON_BRIDGE; a_board_id: STRING_32)
+        local
+            l_request: PYTHON_VALIDATION_REQUEST
+            l_response: detachable PYTHON_MESSAGE
+            l_factory: SIMPLE_JSON
+        do
+            -- Create and send
+            create l_request.make (a_board_id)
+            create l_factory
+            l_request.set_attribute ("board_id", l_factory.string_value (a_board_id))
+            l_request.freeze
+
+            if a_bridge.send_message (l_request) then
+                l_response := a_bridge.receive_message
+                if l_response /= Void then
+                    print (a_board_id + ": OK%N")
+                else
+                    print (a_board_id + ": TIMEOUT%N")
+                end
+            else
+                print (a_board_id + ": SEND_FAILED%N")
+            end
+        end
+
+end</code></pre>
+            <p><strong>Tip:</strong> Reusing bridges is more efficient than creating/initializing new ones for each operation.</p>
+        </section>
+
+        <section>
+            <h2>Troubleshooting</h2>
+
+            <h3>Problem: "Cannot modify frozen message"</h3>
+            <p><strong>Cause:</strong> Trying to call set_attribute after freeze</p>
+            <p><strong>Solution:</strong> Create message, add attributes, THEN freeze</p>
+
+            <h3>Problem: "Timeout: no response"</h3>
+            <p><strong>Cause:</strong> Python process not responding, wrong host/port, network issue</p>
+            <p><strong>Solution:</strong> Check Python service is running, verify host/port, increase timeout</p>
+
+            <h3>Problem: "VUAR(2) type error in SCOOP"</h3>
+            <p><strong>Cause:</strong> Trying to send unfrozen message to separate object</p>
+            <p><strong>Solution:</strong> Always freeze messages before passing to separate regions</p>
+
+            <h3>Problem: "IPC bridge won't initialize on Linux"</h3>
+            <p><strong>Cause:</strong> IPC bridge is Windows-only</p>
+            <p><strong>Solution:</strong> Use HTTP bridge for cross-platform support</p>
+        </section>
+
+        <footer>
+            <p>&copy; 2026 Simple Eiffel Contributors. MIT License.</p>
+        </footer>
+    </main>
+</body>
+</html>

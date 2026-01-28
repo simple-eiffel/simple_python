@@ -1,0 +1,63 @@
+src/grpc_python_bridge.e:34:		require
+src/grpc_python_bridge.e:46:		ensure
+src/grpc_python_bridge.e:98:		ensure then
+src/grpc_python_bridge.e:115:		ensure then
+src/grpc_python_bridge.e:130:		ensure then
+src/grpc_python_bridge.e:154:		ensure then
+src/grpc_python_bridge.e:175:invariant
+src/http_python_bridge.e:36:		require
+src/http_python_bridge.e:48:		ensure
+src/http_python_bridge.e:71:		ensure
+src/http_python_bridge.e:103:		ensure then
+src/http_python_bridge.e:120:		ensure then
+src/http_python_bridge.e:137:		ensure then
+src/http_python_bridge.e:162:		ensure then
+src/http_python_bridge.e:183:invariant
+src/ipc_python_bridge.e:30:		require
+src/ipc_python_bridge.e:40:		ensure
+src/ipc_python_bridge.e:59:		ensure
+src/ipc_python_bridge.e:90:		ensure then
+src/ipc_python_bridge.e:105:		ensure then
+src/ipc_python_bridge.e:121:		ensure then
+src/ipc_python_bridge.e:146:		ensure then
+src/ipc_python_bridge.e:157:		require
+src/ipc_python_bridge.e:179:		ensure
+src/ipc_python_bridge.e:186:		require
+src/ipc_python_bridge.e:215:		ensure
+src/ipc_python_bridge.e:236:invariant
+src/python_bridge.e:11:		- Invariants ensure consistency throughout bridge lifecycle
+src/python_bridge.e:48:		require
+src/python_bridge.e:51:		ensure
+src/python_bridge.e:60:		require
+src/python_bridge.e:63:		ensure
+src/python_bridge.e:72:		require
+src/python_bridge.e:76:		ensure
+src/python_bridge.e:84:		require
+src/python_bridge.e:93:		require
+src/python_bridge.e:99:invariant
+src/python_error.e:25:invariant
+src/python_message.e:24:		require
+src/python_message.e:31:		ensure
+src/python_message.e:60:		require
+src/python_message.e:64:		ensure
+src/python_message.e:77:		require
+src/python_message.e:83:		ensure
+src/python_message.e:89:		require
+src/python_message.e:99:		require
+src/python_message.e:103:		ensure
+src/python_message.e:111:		ensure
+src/python_message.e:120:		require
+src/python_message.e:152:		ensure
+src/python_message.e:161:		require
+src/python_message.e:201:		ensure
+src/python_message.e:206:invariant
+src/python_validation_request.e:25:invariant
+src/python_validation_response.e:25:invariant
+src/simple_python.e:46:		ensure
+src/simple_python.e:60:		require
+src/simple_python.e:65:		ensure
+src/simple_python.e:81:		require
+src/simple_python.e:85:		ensure
+src/simple_python.e:101:		require
+src/simple_python.e:106:		ensure
+src/simple_python.e:113:invariant

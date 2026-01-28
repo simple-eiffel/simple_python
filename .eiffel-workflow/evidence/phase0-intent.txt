@@ -1,0 +1,186 @@
+# Phase 0 Intent Evidence
+# Project: simple_python Eiffel-Python Bridge Library
+# Date: January 28, 2026
+
+==========================================
+PHASE 0 STATUS: REFINEMENT COMPLETE
+==========================================
+
+Intent document: .eiffel-workflow/intent.md (original)
+Intent v2 document: .eiffel-workflow/intent-v2.md (refined - RECOMMENDED)
+
+==========================================
+AI REVIEW CONDUCTED
+==========================================
+
+AI Model: Qwen2.5-Coder 14B (Local Ollama)
+Date: January 28, 2026
+Questions Generated: 10 probing questions
+Response Quality: EXCELLENT
+
+Review Focus Areas:
+✅ Vague language identification (production-grade, low-latency, seamless)
+✅ Missing edge cases (malformed JSON, connection failures)
+✅ Hidden dependencies (Python versions, HTTP versions, OS support)
+✅ Untestable criteria (code coverage without branch coverage)
+✅ Scope ambiguity (Phase 2 timeline vagueness)
+✅ Architecture concerns (three-bridge model redundancy)
+✅ MML decision validation (frame condition completeness)
+✅ Dependency risk assessment (fallback mechanisms)
+✅ Contract enforcement definition (DBC verification process)
+✅ Quality metrics beyond coverage (defect density, reliability)
+
+==========================================
+REFINEMENTS APPLIED
+==========================================
+
+File: intent-v2.md (NEW - COMPLETE REFINEMENT)
+Size: ~8000 words
+Sections Added:
+
+1. **Technical Specifications**
+   - Python support: 3.8+ (tested on 3.8, 3.9, 3.10, 3.11, 3.12)
+   - HTTP versions: HTTP/1.1 mandatory, HTTP/2 optional
+   - Windows/Linux support matrix
+
+2. **Performance SLAs (Quantified)**
+   - HTTP response: ≤100ms (p95)
+   - IPC response: ≤10ms (p95)
+   - Throughput: ≥1000 req/sec
+   - Error rate: <0.1%
+   - Uptime SLA: ≥99.5%
+
+3. **Reliability & Quality Metrics**
+   - Code coverage: ≥90% line coverage
+   - Branch coverage: ≥85% (new)
+   - Defect density: <5 defects/KLOC
+   - Test suite: 100+ unit, 20+ integration, 5+ stress tests
+
+4. **Architecture Refinement**
+   - Unified PYTHON_BRIDGE with pluggable transports (adapter pattern)
+   - Three implementations: HTTP_PYTHON_BRIDGE, IPC_PYTHON_BRIDGE, GRPC_PYTHON_BRIDGE
+   - Shared PYTHON_MESSAGE base class
+   - Clear separation of concerns
+
+5. **Dependency Risk Mitigation**
+   - Version pinning strategy
+   - Monthly dependency review cycle
+   - Fallback mechanisms (IPC as HTTP alternative, HTTP as IPC alternative)
+   - Integration testing requirements after updates
+
+6. **Phase 2 Timeline Clarification**
+   - Target: Q3 2026 (estimated)
+   - Prerequisite: 2-month Phase 1 stabilization
+   - Dependency: simple_grpc library availability
+   - Linux IPC: Requires simple_ipc_unix library
+
+7. **Testing Strategy (Detailed)**
+   - Unit tests: 100+ tests covering contracts
+   - Integration tests: 20+ tests for both protocols
+   - Stress tests: 5+ tests for load, memory, concurrency
+   - Performance tests: Latency, throughput, error rate
+
+8. **MML Decision Reinforced**
+   - Collection identification: attributes, connections, results
+   - Model query definitions: attributes_model, connections_model, results_model
+   - Contract example with frame conditions (|=|)
+   - Postcondition structure: direct effect + frame condition
+
+9. **Timeline & Milestones**
+   - Phase 1: 4 months (from approval)
+   - 7 steps with weekly/monthly breakdown
+   - Phase 2: Q3 2026 (with prerequisites)
+
+10. **Success Criteria (Approval Gate)**
+    - 11 checkpoint checklist
+    - Stakeholder agreement on SLAs
+    - Scope boundary acceptance
+
+11. **AI Questions Answered**
+    - All 10 AI probing questions resolved
+    - Traceability: answer column in summary table
+
+==========================================
+KEY IMPROVEMENTS
+==========================================
+
+From intent.md → intent-v2.md:
+
+1. QUANTIFIED:
+   - "production-grade" → ≥99.5% uptime, <0.1% error rate
+   - "low-latency" → ≤100ms (HTTP), ≤10ms (IPC)
+   - "contract-verified" → Explicit DBC verification process
+
+2. SPECIFIED:
+   - Python versions (3.8+, tested on 5 versions)
+   - HTTP versions (1.1 mandatory, 2 optional)
+   - Windows/Linux platform support
+
+3. ARCHITECTURE:
+   - Unified bridge pattern (reduces duplication)
+   - Adapter pattern for transport pluggability
+   - Clear dependency injection structure
+
+4. TESTING:
+   - Added branch coverage metric (≥85%)
+   - Stress test strategy (100 → 1000 concurrent)
+   - Performance benchmarking (latency, throughput)
+
+5. RISK:
+   - Dependency fallback mechanisms documented
+   - Version pinning and review cycle defined
+   - Integration testing requirements specified
+
+6. TIMELINE:
+   - Phase 2 from "future" → "Q3 2026 (estimated)"
+   - Phase 2 prerequisites explicitly listed
+   - Weekly/monthly breakdown for Phase 1
+
+==========================================
+RECOMMENDATION
+==========================================
+
+USE intent-v2.md FOR PHASE 1 APPROVAL
+
+Reasons:
+✅ Incorporates all 10 AI review findings
+✅ Adds quantitative SLAs (measurable)
+✅ Clarifies platform/version support
+✅ Defines testing metrics beyond coverage
+✅ Reduces architecture ambiguity
+✅ Specifies risk mitigation
+✅ Sets realistic timeline
+
+intent.md (original) is still valid but lacks these critical clarifications.
+
+==========================================
+NEXT STEP
+==========================================
+
+User must review intent-v2.md and APPROVE to unlock Phase 1 (Contracts).
+
+Approval Checklist (11 items):
+- [ ] Intent accurately describes the library
+- [ ] Phase 1 scope (HTTP + IPC) appropriate
+- [ ] Phase 2 deferral (gRPC + Linux) justified
+- [ ] Performance SLAs achievable
+- [ ] Testing metrics acceptable
+- [ ] 4-month Phase 1 timeline feasible
+- [ ] simple_* dependency strategy sound
+- [ ] MML decision sufficient
+- [+] Ready for Phase 1 Contracts
+- [+] Ready for contract skeletons
+- [+] Ready for adversarial review
+
+Status: AWAITING USER SIGN-OFF
+
+==========================================
+EVIDENCE COMPLETE
+==========================================
+
+Date: 2026-01-28
+AI Review: COMPLETE (10 questions, Qwen2.5-Coder 14B)
+Refinements: APPLIED (intent-v2.md)
+Ready for Phase 1: PENDING USER APPROVAL
+
+Next: Run `/eiffel.contracts d:\prod\simple_python` AFTER USER APPROVAL

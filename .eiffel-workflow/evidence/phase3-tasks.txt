@@ -1,0 +1,116 @@
+# Phase 3 Task Decomposition Evidence
+# Project: D:\prod\simple_python
+# Date: 2026-01-28
+
+## Task Decomposition Complete
+
+### Files Generated
+- .eiffel-workflow/tasks.md (comprehensive task breakdown)
+
+### Task Count
+**Total Tasks:** 10
+**Status:** All defined with full acceptance criteria
+
+### Task Breakdown
+
+#### Core Implementation Tasks (8 tasks)
+1. Message Freeze Mechanism (SCOOP safety)
+2. Message Serialization - to_json
+3. Message Serialization - to_binary
+4. IPC Frame Encoding - encode_frame
+5. IPC Frame Decoding - decode_frame
+6. HTTP_PYTHON_BRIDGE (initialize, close, send_message, receive_message)
+7. IPC_PYTHON_BRIDGE (initialize, close, send_message, receive_message)
+8. GRPC_PYTHON_BRIDGE (skeleton, deferred to Phase 2)
+
+#### Support Tasks (2 tasks)
+9. Error Handling and Logging (consistency of has_error/last_error_message)
+10. Integration and Acceptance Testing Preparation
+
+### Dependencies Identified
+
+**Critical Path:**
+Task 1 → Task 3 → Task 7 → Task 9 → Task 10
+
+**Dependency Graph:**
+```
+Task 1 (Freeze)
+  └─> Task 2 (to_json) ─┐
+  └─> Task 3 (to_binary) ┤─> Task 6 (HTTP) ─┐
+                         ├─> Task 7 (IPC) ──┼─> Task 9 (Error)
+                         │                  └─> Task 10 (Integration)
+       Task 4 (encode) ─┐
+       Task 5 (decode) ─┴─> Task 7 (IPC)
+```
+
+### Acceptance Criteria
+
+All 10 tasks have detailed acceptance criteria:
+- Phase 4: Implementation checklist (body implementation)
+- Phase 5: Testing checklist (skeletal tests fleshed out)
+- Phase 6: Adversarial testing checklist
+
+### Implementation Notes
+
+Each task includes:
+- Clear algorithm from approach.md
+- Specific method signatures from contracts
+- Error handling requirements
+- Performance targets (where applicable)
+- Phase 5 testing expectations
+
+### Dependencies Between Phases
+
+- **Phase 4 (Implementation):** Tasks 1-10 write feature bodies
+- **Phase 5 (Verification):** Tests based on these contracts
+- **Phase 6 (Hardening):** Stress tests, SCOOP testing
+- **Phase 7 (Ship):** Documentation, binaries
+
+### Constraints for Phase 4 Implementer
+
+1. **Contracts FROZEN** - Cannot modify require/ensure/invariant
+2. **ZERO WARNINGS** - Any compiler warnings fixed immediately
+3. **Preconditions enforced** - to_json/to_binary require is_frozen
+4. **Error semantics** - Failure → has_error := true, last_error_message set
+5. **Resource cleanup** - No leaks on failed operations
+
+### Human Approval Status
+
+**Awaiting:** User approval to proceed to Phase 4 (Implementation)
+
+---
+
+## Phase 3 Summary
+
+**Status:** COMPLETE ✓
+
+All contracts from Phase 1 have been decomposed into 10 implementation tasks with:
+- Clear acceptance criteria
+- Explicit dependencies
+- Algorithm specifications from approach.md
+- Testing strategy for Phases 5-6
+- Constraints for Phase 4 implementer
+
+**Ready for Phase 4:** YES
+
+Tasks are well-scoped (not too large, not too small) and follow the critical path for dependency management.
+
+**Total Estimated Effort (with testing/hardening):** 8-12 developer-weeks
+
+---
+
+## Files Modified in Phase 3
+- .eiffel-workflow/tasks.md (created)
+- .eiffel-workflow/evidence/phase3-tasks.txt (created)
+
+## Next Phase
+
+Phase 4 (Implementation):
+- Run: `/eiffel.implement d:\prod\simple_python`
+- Task: Write feature bodies for Tasks 1-10
+- Constraint: Contracts are FROZEN (no modifications allowed)
+- Quality Gate: System Recompiled with ZERO WARNINGS
+
+---
+
+Completed: 2026-01-28

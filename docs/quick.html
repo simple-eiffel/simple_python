@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick API Reference - simple_python</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>simple_python</h1>
+        <p class="tagline">Quick API Reference</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="quick.html">QUICK API</a></li>
+            <li><a href="user-guide.html">User Guide</a></li>
+            <li><a href="api-reference.html">API Reference</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="cookbook.html">Cookbook</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_python">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section>
+            <h2>Quick Examples</h2>
+
+            <h3>Create Library and HTTP Bridge</h3>
+            <pre><code>local
+    l_lib: SIMPLE_PYTHON
+    l_bridge: HTTP_PYTHON_BRIDGE
+do
+    create l_lib.make
+    l_bridge := l_lib.new_http_bridge ("localhost", 8080)
+    l_bridge.set_timeout (5000)  -- 5 second timeout
+    if l_bridge.initialize then
+        print ("HTTP bridge ready%N")
+    end
+end</code></pre>
+
+            <h3>Create and Send Validation Request</h3>
+            <pre><code>local
+    l_request: PYTHON_VALIDATION_REQUEST
+    l_factory: SIMPLE_JSON
+do
+    create l_request.make ("board_001")
+    create l_factory
+    l_request.set_attribute ("status", l_factory.string_value ("ready"))
+    l_request.set_attribute ("temperature", l_factory.integer_value (45))
+    l_request.freeze  -- Prepare for transmission
+    if l_bridge.send_message (l_request) then
+        print ("Request sent%N")
+    end
+end</code></pre>
+
+            <h3>Receive and Process Response</h3>
+            <pre><code>local
+    l_response: detachable PYTHON_MESSAGE
+do
+    l_response := l_bridge.receive_message
+    if l_response /= Void then
+        print ("Received response%N")
+        -- Response will be PYTHON_VALIDATION_RESPONSE or PYTHON_ERROR
+    end
+end</code></pre>
+
+            <h3>Create IPC Bridge (Windows Named Pipes)</h3>
+            <pre><code>local
+    l_lib: SIMPLE_PYTHON
+    l_bridge: IPC_PYTHON_BRIDGE
+do
+    create l_lib.make
+    l_bridge := l_lib.new_ipc_bridge ("\\.\\pipe\\eiffel_validator")
+    if l_bridge.initialize then
+        print ("IPC bridge connected%N")
+    end
+end</code></pre>
+
+            <h3>Close Bridge Cleanly</h3>
+            <pre><code>do
+    l_bridge.close
+    print ("Bridge closed%N")
+end</code></pre>
+        </section>
+
+        <section>
+            <h2>Common Operations</h2>
+            <ul>
+                <li><strong>Create bridge:</strong> <code>l_lib.new_http_bridge (host, port)</code></li>
+                <li><strong>Configure timeout:</strong> <code>l_bridge.set_timeout (milliseconds)</code></li>
+                <li><strong>Initialize:</strong> <code>l_bridge.initialize: BOOLEAN</code></li>
+                <li><strong>Create message:</strong> <code>create l_msg.make (id)</code></li>
+                <li><strong>Set attributes:</strong> <code>l_msg.set_attribute (key, value)</code></li>
+                <li><strong>Freeze message:</strong> <code>l_msg.freeze</code> (required before sending)</li>
+                <li><strong>Send message:</strong> <code>l_bridge.send_message (l_msg): BOOLEAN</code></li>
+                <li><strong>Receive message:</strong> <code>l_bridge.receive_message: PYTHON_MESSAGE</code></li>
+                <li><strong>Check status:</strong> <code>l_bridge.is_connected: BOOLEAN</code></li>
+                <li><strong>Error handling:</strong> <code>l_bridge.has_error</code> and <code>l_bridge.last_error_message</code></li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>Message Types</h2>
+            <ul>
+                <li><strong>PYTHON_VALIDATION_REQUEST</strong> - Send validation parameters to Python</li>
+                <li><strong>PYTHON_VALIDATION_RESPONSE</strong> - Receive validation results from Python</li>
+                <li><strong>PYTHON_ERROR</strong> - Handle error responses from Python</li>
+            </ul>
+        </section>
+
+        <p><a href="api-reference.html">See Full API Reference</a> for complete class and feature documentation.</p>
+
+        <footer>
+            <p>&copy; 2026 Simple Eiffel Contributors. MIT License.</p>
+        </footer>
+    </main>
+</body>
+</html>

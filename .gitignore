@@ -1,0 +1,38 @@
+# Eiffel build artifacts
+EIFGENs/
+*.melted
+*.generated
+
+# IDE and editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+*.lnk
+
+# Python test artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+
+# Temporary files
+*.tmp
+*.log
+*.o
+*.a
+*.so
+
+# Test outputs
+test_results/
+coverage/
+reports/

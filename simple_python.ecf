@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<system name="simple_python" uuid="97E30D5D-0E5C-4D67-81C5-B8E7A9D4F2C1" library_target="simple_python">
+	<description>
+		Eiffel-Python bridge for ultra-low-latency validation communication.
+
+		Supports three transport protocols:
+		- HTTP: JSON over HTTP/1.1 (Phase 1)
+		- IPC: Windows named pipes (Phase 1)
+		- gRPC: High-performance RPC (Phase 2)
+
+		All bridges implement unified PYTHON_BRIDGE interface for pluggable transports.
+	</description>
+
+	<!-- Library Target (for reuse in other projects) -->
+	<target name="simple_python">
+		<root all_classes="true"/>
+		<option warning="warning" namespace="http://www.eiffel.com/2014/"/>
+
+		<capability>
+			<concurrency support="scoop"/>
+			<void_safety support="all"/>
+		</capability>
+
+		<!-- Standard Eiffel libraries (no simple_* equivalent) -->
+		<library name="base" location="$ISE_LIBRARY\library\base\base.ecf"/>
+		<library name="time" location="$ISE_LIBRARY\library\time\time.ecf"/>
+
+		<!-- simple_* ecosystem - preferred over ISE/Gobo -->
+		<library name="simple_json" location="$SIMPLE_EIFFEL\simple_json\simple_json.ecf"/>
+		<library name="simple_http" location="$SIMPLE_EIFFEL\simple_http\simple_http.ecf"/>
+		<library name="simple_mml" location="$SIMPLE_EIFFEL\simple_mml\simple_mml.ecf"/>
+		<library name="simple_logger" location="$SIMPLE_EIFFEL\simple_logger\simple_logger.ecf"/>
+		<library name="simple_testing" location="$SIMPLE_EIFFEL\simple_testing\simple_testing.ecf"/>
+		<library name="simple_process" location="$SIMPLE_EIFFEL\simple_process\simple_process.ecf"/>
+
+		<!-- Phase 1: HTTP and IPC -->
+		<cluster name="src" location="src\"/>
+
+		<!-- Phase 2 (Future): gRPC support via simple_grpc (when available) -->
+		<!-- <library name="simple_grpc" location="$SIMPLE_EIFFEL\simple_grpc\simple_grpc.ecf"/> -->
+	</target>
+
+	<!-- Test Target (extends library with test classes) -->
+	<target name="simple_python_tests" extends="simple_python">
+		<root class="TEST_APP_MINIMAL" feature="make"/>
+		<option warning="warning" namespace="http://www.eiffel.com/2014/"/>
+
+		<!-- Testing framework -->
+		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf"/>
+
+		<!-- Test classes -->
+		<cluster name="test" location="test\"/>
+	</target>
+
+</system>

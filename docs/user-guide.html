@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Guide - simple_python</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>simple_python</h1>
+        <p class="tagline">User Guide</p>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="index.html">Overview</a></li>
+            <li><a href="quick.html">QUICK API</a></li>
+            <li><a href="user-guide.html">User Guide</a></li>
+            <li><a href="api-reference.html">API Reference</a></li>
+            <li><a href="architecture.html">Architecture</a></li>
+            <li><a href="cookbook.html">Cookbook</a></li>
+            <li><a href="https://github.com/simple-eiffel/simple_python">GitHub</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section>
+            <h2>Introduction</h2>
+            <p>
+                simple_python enables Eiffel control systems to communicate with Python machine-learning and orchestration systems.
+                Whether you're validating circuit boards via Python ML models or coordinating complex hardware workflows,
+                simple_python provides three transport options optimized for your use case.
+            </p>
+        </section>
+
+        <section>
+            <h2>Installation</h2>
+            <h3>Prerequisites</h3>
+            <ul>
+                <li>EiffelStudio 25.02 or later</li>
+                <li>simple_json library (automatic dependency)</li>
+                <li>simple_http library (automatic dependency)</li>
+                <li>simple_mml library (optional, for advanced contracts)</li>
+            </ul>
+
+            <h3>Add to Your ECF</h3>
+            <pre><code>&lt;library name="simple_python" location="$SIMPLE_EIFFEL/simple_python/simple_python.ecf"/&gt;</code></pre>
+
+            <h3>Import Classes</h3>
+            <pre><code>local
+    l_lib: SIMPLE_PYTHON
+    l_bridge: HTTP_PYTHON_BRIDGE
+    l_request: PYTHON_VALIDATION_REQUEST
+do
+    -- Use classes as shown in examples below
+end</code></pre>
+        </section>
+
+        <section>
+            <h2>Transport Protocols</h2>
+
+            <h3>HTTP (JSON over HTTP/1.1)</h3>
+            <p><strong>Use when:</strong> Communicating with remote Python systems, standard web integration</p>
+            <p><strong>Latency:</strong> 10-100ms typical (network dependent)</p>
+            <pre><code>local
+    l_lib: SIMPLE_PYTHON
+    l_bridge: HTTP_PYTHON_BRIDGE
+do
+    create l_lib.make
+    l_bridge := l_lib.new_http_bridge ("ml-server.example.com", 8080)
+    l_bridge.set_timeout (5000)  -- 5 seconds
+    if l_bridge.initialize then
+        -- Bridge ready to send messages
+    end
+end</code></pre>
+
+            <h3>IPC (Windows Named Pipes)</h3>
+            <p><strong>Use when:</strong> Same-machine communication with Python process, ultra-low latency required</p>
+            <p><strong>Latency:</strong> ≤10ms p95 for 1KB payloads</p>
+            <p><strong>Limitation:</strong> Windows only, same machine only</p>
+            <pre><code>local
+    l_lib: SIMPLE_PYTHON
+    l_bridge: IPC_PYTHON_BRIDGE
+do
+    create l_lib.make
+    l_bridge := l_lib.new_ipc_bridge ("\\.\\pipe\\eiffel_python_ipc")
+    if l_bridge.initialize then
+        -- Bridge ready (ultra-low latency)
+    end
+end</code></pre>
+
+            <h3>gRPC (High-Performance RPC)</h3>
+            <p><strong>Use when:</strong> Cross-platform, high-throughput communication, streaming</p>
+            <p><strong>Note:</strong> Phase 2 extensible design - protocol plugin architecture</p>
+            <pre><code>local
+    l_lib: SIMPLE_PYTHON
+    l_bridge: GRPC_PYTHON_BRIDGE
+do
+    create l_lib.make
+    l_bridge := l_lib.new_grpc_bridge ("localhost", 50051)
+    -- Additional gRPC configuration here
+end</code></pre>
+        </section>
+
+        <section>
+            <h2>Message Format</h2>
+
+            <h3>Message Structure</h3>
+            <p>All messages consist of:</p>
+            <ul>
+                <li><strong>message_id:</strong> Unique identifier for correlation</li>
+                <li><strong>type:</strong> Message type (validation_request, validation_response, error)</li>
+                <li><strong>timestamp:</strong> ISO 8601 timestamp</li>
+                <li><strong>attributes:</strong> Key-value pairs with custom data</li>
+            </ul>
+
+            <h3>Creating Validation Request</h3>
+            <pre><code>local
+    l_request: PYTHON_VALIDATION_REQUEST
+    l_factory: SIMPLE_JSON
+    l_json_value: SIMPLE_JSON_VALUE
+do
+    create l_request.make ("board_pcb_001")
+    create l_factory
+
+    -- Add attributes as JSON values
+    l_request.set_attribute ("board_id", l_factory.string_value ("PCB-2024-001"))
+    l_request.set_attribute ("temperature", l_factory.integer_value (45))
+    l_request.set_attribute ("voltage", l_factory.number_value (3.3))
+
+    -- Freeze before sending (required for SCOOP safety)
+    l_request.freeze
+
+    -- Now safe to send
+    l_bridge.send_message (l_request)
+end</code></pre>
+
+            <h3>Handling Responses</h3>
+            <pre><code>local
+    l_message: detachable PYTHON_MESSAGE
+    l_response: PYTHON_VALIDATION_RESPONSE
+    l_error: PYTHON_ERROR
+do
+    l_message := l_bridge.receive_message
+
+    if l_message /= Void then
+        if attached {PYTHON_VALIDATION_RESPONSE} l_message as l_response then
+            print ("Validation passed%N")
+        elseif attached {PYTHON_ERROR} l_message as l_error then
+            print ("Error: " + l_error.get_attribute ("details").as_string_32 + "%N")
+        end
+    end
+end</code></pre>
+        </section>
+
+        <section>
+            <h2>Best Practices</h2>
+
+            <h3>1. Always Freeze Before Sending</h3>
+            <p>Messages must be frozen to ensure thread-safety in SCOOP contexts:</p>
+            <pre><code>l_request.freeze  -- Critical for concurrent safety
+l_bridge.send_message (l_request)</code></pre>
+
+            <h3>2. Handle Errors Gracefully</h3>
+            <pre><code>if l_bridge.send_message (l_request) then
+    print ("Sent successfully%N")
+else
+    if l_bridge.has_error then
+        print ("Error: " + l_bridge.last_error_message + "%N")
+    end
+end</code></pre>
+
+            <h3>3. Set Appropriate Timeouts</h3>
+            <pre><code>-- Short timeout for local IPC
+l_ipc_bridge.set_timeout (1000)  -- 1 second
+
+-- Longer timeout for remote HTTP
+l_http_bridge.set_timeout (30000)  -- 30 seconds</code></pre>
+
+            <h3>4. Close Bridges Properly</h3>
+            <pre><code>if l_bridge.is_connected then
+    l_bridge.close
+end</code></pre>
+
+            <h3>5. Design by Contract</h3>
+            <p>All classes use Design by Contract with preconditions, postconditions, and invariants.
+            Enable assertions in your ECF for development and testing:</p>
+            <pre><code>&lt;option name="assertions" value="all" /&gt;</code></pre>
+        </section>
+
+        <section>
+            <h2>Error Handling</h2>
+
+            <h3>Bridge-Level Errors</h3>
+            <pre><code>if not l_bridge.initialize then
+    if l_bridge.has_error then
+        print ("Failed to initialize: " + l_bridge.last_error_message + "%N")
+    end
+end</code></pre>
+
+            <h3>Message-Level Errors</h3>
+            <p>Check if received message is an error:</p>
+            <pre><code>l_message := l_bridge.receive_message
+if attached {PYTHON_ERROR} l_message as l_error then
+    print ("Python error: " + l_error.message_id + "%N")
+end</code></pre>
+
+            <h3>Timeout Handling</h3>
+            <p>If receive_message returns Void, timeout occurred:</p>
+            <pre><code>l_message := l_bridge.receive_message
+if l_message = Void then
+    print ("Receive timed out after " + l_bridge.timeout_ms.out + "ms%N")
+end</code></pre>
+        </section>
+
+        <section>
+            <h2>Performance Tips</h2>
+
+            <ul>
+                <li><strong>Use IPC for same-machine:</strong> Latency &le;10ms vs 10-100ms for HTTP</li>
+                <li><strong>Batch messages when possible:</strong> Reduce round-trips</li>
+                <li><strong>Set timeout appropriately:</strong> Too short = timeouts, too long = stalls</li>
+                <li><strong>Monitor message size:</strong> Binary format more efficient than JSON for large payloads</li>
+                <li><strong>Reuse bridges:</strong> Create once, reuse across many operations</li>
+            </ul>
+        </section>
+
+        <section>
+            <h2>SCOOP (Concurrent Safety)</h2>
+
+            <p>simple_python is fully SCOOP-compatible for concurrent Eiffel systems:</p>
+            <pre><code>-- In SCOOP-enabled Eiffel code
+separate l_bridge.send_message (l_request)  -- Safe concurrent call
+</code></pre>
+
+            <p><strong>Key requirement:</strong> Always freeze messages before passing them to separate objects.</p>
+        </section>
+
+        <footer>
+            <p>&copy; 2026 Simple Eiffel Contributors. MIT License.</p>
+        </footer>
+    </main>
+</body>
+</html>
