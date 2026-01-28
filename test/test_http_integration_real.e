@@ -28,13 +28,13 @@ feature {NONE} -- Setup/Teardown
 			create http_process.make
 			create l_proc.make
 
-			-- Start HTTP server in background
-			logger.log_info ("Starting Python HTTP server: python3 d:\prod\simple_python\python_test_server.py")
-			l_proc.execute ({STRING_32} "python3 d:\prod\simple_python\python_test_server.py")
+			-- Start HTTP server in background using batch script (reliable background execution)
+			logger.log_info ("Starting Python HTTP server on port 8889 using batch script")
+			l_proc.execute ({STRING_32} "d:\prod\simple_python\start_server.bat 8889")
 
 			-- Wait for server to initialize (Python startup can be slow)
-			logger.log_info ("Waiting 3000ms for Python server initialization...")
-			sleep_milliseconds (3000)
+			logger.log_info ("Waiting 5000ms for Python server initialization...")
+			sleep_milliseconds (5000)
 
 			logger.log_info ("TEST_HTTP_INTEGRATION_REAL setup: END")
 		end
@@ -89,13 +89,14 @@ feature -- Tests
 			l_message: PYTHON_VALIDATION_REQUEST
 			l_result: BOOLEAN
 			l_response: detachable PYTHON_MESSAGE
+			l_msg: STRING_32
 		do
 			logger.log_info ("TEST: test_http_bridge_sends_to_python_server START")
 
 			-- Send a message to the running Python test server via HTTP and validate round-trip.
-			-- Create bridge pointing to Python server on localhost:8888
-			logger.log_info ("Creating HTTP bridge to 127.0.0.1:8888")
-			create l_bridge.make_with_host_port ({STRING_32} "127.0.0.1", 8888)
+			-- Create bridge pointing to Python server on localhost:8889
+			logger.log_info ("Creating HTTP bridge to 127.0.0.1:8889")
+			create l_bridge.make_with_host_port ({STRING_32} "127.0.0.1", 8889)
 
 			-- Initialize bridge
 			logger.log_info ("Initializing bridge")
@@ -123,7 +124,8 @@ feature -- Tests
 
 			-- Validate response message ID matches what we sent
 			if attached l_response then
-				logger.log_info ("Response received with ID: " + l_response.message_id + ", type: " + l_response.message_type)
+				l_msg := {STRING_32} "Response received with ID: " + l_response.message_id + {STRING_32} ", type: " + l_response.message_type
+				logger.log_info (l_msg.to_string_8)
 				assert ("response_message_id_matches", l_response.message_id.same_string ({STRING_32} "test_msg_001"))
 
 				-- Validate response type is VALIDATION_RESPONSE
@@ -137,7 +139,8 @@ feature -- Tests
 				-- Validate specific attribute: result should be "PASS"
 				if l_response.has_attribute ({STRING_32} "result") then
 					if attached l_response.get_attribute ({STRING_32} "result") as l_result_attr then
-						logger.log_info ("Result attribute found: " + l_result_attr.as_string_32)
+						l_msg := {STRING_32} "Result attribute found: " + l_result_attr.as_string_32
+						logger.log_info (l_msg.to_string_8)
 						assert ("response_result_is_pass", l_result_attr.as_string_32.same_string ({STRING_32} "PASS"))
 					end
 				end

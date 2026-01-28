@@ -110,8 +110,14 @@ class SimpleHTTPHandler(BaseHTTPRequestHandler):
 
 def main():
     """Start the test HTTP server."""
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--port", type=int, default=8888, help="Port to listen on")
+    args = parser.parse_args()
+
     host = "127.0.0.1"
-    port = 8888
+    port = args.port
 
     print(f"[STARTUP] Starting simple_python test server on http://{host}:{port}", file=sys.stderr)
     print(f"[STARTUP] Endpoints: POST /validate, POST /echo, GET /health", file=sys.stderr)
