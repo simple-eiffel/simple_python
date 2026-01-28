@@ -164,11 +164,15 @@ feature {NONE} -- HTTP Integration Tests
 			create l_tests
 
 			output.append ("  test_http_bridge_sends_to_python_server: ")
+			l_tests.setup
 			l_tests.test_http_bridge_sends_to_python_server
+			l_tests.teardown
 			output.append ("OK%N")
 
 			output.append ("  test_http_bridge_handles_errors: ")
+			l_tests.setup
 			l_tests.test_http_bridge_handles_errors
+			l_tests.teardown
 			output.append ("OK%N")
 		end
 
@@ -210,11 +214,15 @@ feature {NONE} -- IPC Integration Tests
 			create l_tests
 
 			output.append ("  test_ipc_bridge_sends_to_python_server: ")
+			l_tests.setup
 			l_tests.test_ipc_bridge_sends_to_python_server
+			l_tests.teardown
 			output.append ("OK%N")
 
 			output.append ("  test_ipc_bridge_handles_errors: ")
+			l_tests.setup
 			l_tests.test_ipc_bridge_handles_errors
+			l_tests.teardown
 			output.append ("OK%N")
 		end
 

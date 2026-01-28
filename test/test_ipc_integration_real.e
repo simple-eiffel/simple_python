@@ -9,7 +9,7 @@ class TEST_IPC_INTEGRATION_REAL
 inherit
 	TEST_SET_BASE
 
-feature {NONE} -- Setup/Teardown
+feature -- Setup/Teardown
 
 	setup
 			-- Start Python IPC server before each test.

@@ -16,17 +16,23 @@ feature {NONE} -- Logger
 			create Result.make_to_file ("logs/simple_python.log")
 		end
 
-feature {NONE} -- Setup/Teardown
+feature -- Setup/Teardown
 
 	setup
 			-- Setup for HTTP integration tests.
-			-- IMPORTANT: Python HTTP server must be running on port 8889 BEFORE tests start
-			-- To start the server, run: d:\prod\simple_python\run_server.bat
+			-- Automatically starts Python HTTP server on port 8889 using VBScript launcher.
+		local
+			l_proc: SIMPLE_PROCESS
 		do
 			logger.log_info ("TEST_HTTP_INTEGRATION_REAL setup: START")
-			logger.log_info ("NOTE: Python HTTP server must be manually started on port 8889")
-			logger.log_info ("Run: d:\prod\simple_python\run_server.bat")
+
 			create http_process.make
+			create l_proc.make
+
+			-- Start HTTP server using blocking launcher (waits for port to be listening)
+			logger.log_info ("Starting Python HTTP server on port 8889 using blocking launcher...")
+			l_proc.execute ({STRING_32} "python3 d:\prod\simple_python\start_http_server_blocking.py 8889")
+
 			logger.log_info ("TEST_HTTP_INTEGRATION_REAL setup: END")
 		end
 
@@ -81,6 +87,7 @@ feature -- Tests
 			l_result: BOOLEAN
 			l_response: detachable PYTHON_MESSAGE
 			l_msg: STRING_32
+			l_err_msg: STRING_32
 		do
 			logger.log_info ("TEST: test_http_bridge_sends_to_python_server START")
 			logger.log_info ("NOTE: Requires Python HTTP server running on port 8889")
@@ -109,7 +116,8 @@ feature -- Tests
 			if not l_result then
 				logger.log_error ("Message send FAILED!")
 				logger.log_error ("Bridge error state: has_error=" + l_bridge.has_error.out)
-				logger.log_error ("Bridge error message: " + l_bridge.last_error_message)
+				l_err_msg := {STRING_32} "Bridge error message: " + l_bridge.last_error_message
+				logger.log_error (l_err_msg.to_string_8)
 			end
 
 			assert ("message_sent_successfully", l_result)
@@ -157,6 +165,7 @@ feature -- Tests
 			l_bridge: HTTP_PYTHON_BRIDGE
 			l_message: PYTHON_VALIDATION_REQUEST
 			l_result: BOOLEAN
+			l_err_msg: STRING_32
 		do
 			logger.log_info ("TEST: test_http_bridge_handles_errors START")
 
@@ -186,7 +195,8 @@ feature -- Tests
 
 			-- Validate error message is informative
 			assert ("error_message_not_empty", l_bridge.last_error_message.count > 0)
-			logger.log_info ("Error message: " + l_bridge.last_error_message)
+			l_err_msg := {STRING_32} "Error message: " + l_bridge.last_error_message
+			logger.log_info (l_err_msg.to_string_8)
 
 			logger.log_info ("TEST: test_http_bridge_handles_errors END - PASSED")
 		end
