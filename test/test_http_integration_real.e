@@ -19,23 +19,14 @@ feature {NONE} -- Logger
 feature {NONE} -- Setup/Teardown
 
 	setup
-			-- Start Python HTTP server before each test.
-		local
-			l_proc: SIMPLE_PROCESS
+			-- Setup for HTTP integration tests.
+			-- IMPORTANT: Python HTTP server must be running on port 8889 BEFORE tests start
+			-- To start the server, run: d:\prod\simple_python\run_server.bat
 		do
 			logger.log_info ("TEST_HTTP_INTEGRATION_REAL setup: START")
-
+			logger.log_info ("NOTE: Python HTTP server must be manually started on port 8889")
+			logger.log_info ("Run: d:\prod\simple_python\run_server.bat")
 			create http_process.make
-			create l_proc.make
-
-			-- Start HTTP server in background using batch script (reliable background execution)
-			logger.log_info ("Starting Python HTTP server on port 8889 using batch script")
-			l_proc.execute ({STRING_32} "d:\prod\simple_python\start_server.bat 8889")
-
-			-- Wait for server to initialize (Python startup can be slow)
-			logger.log_info ("Waiting 5000ms for Python server initialization...")
-			sleep_milliseconds (5000)
-
 			logger.log_info ("TEST_HTTP_INTEGRATION_REAL setup: END")
 		end
 
