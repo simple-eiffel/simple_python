@@ -152,7 +152,7 @@ feature -- Message Operations (From PYTHON_BRIDGE)
 			l_url.append (host.to_string_8)
 			l_url.append_string (":")
 			l_url.append (port.out)
-			l_url.append_string ("/")
+			l_url.append_string ("/validate")
 
 			-- Create HTTP client and POST JSON data
 			create l_http.make

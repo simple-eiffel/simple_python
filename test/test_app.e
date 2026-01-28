@@ -27,6 +27,9 @@ feature {NONE} -- Initialization
 			output.append ("%N--- HTTP_PYTHON_BRIDGE tests ---%N")
 			run_http_python_bridge_tests
 
+			output.append ("%N--- HTTP Integration (Real Server) ---%N")
+			run_http_integration_tests
+
 			-- output.append ("%N--- IPC_PYTHON_BRIDGE tests ---%N")
 			-- run_ipc_python_bridge_tests  -- TODO: Fix segfault in Phase 6
 
@@ -132,6 +135,23 @@ feature {NONE} -- HTTP_PYTHON_BRIDGE Tests
 
 			output.append ("  test_active_connections_query: ")
 			l_tests.test_active_connections_query
+			output.append ("OK%N")
+		end
+
+feature {NONE} -- HTTP Integration Tests
+
+	run_http_integration_tests
+		local
+			l_tests: TEST_HTTP_INTEGRATION_REAL
+		do
+			create l_tests
+
+			output.append ("  test_http_bridge_sends_to_python_server: ")
+			l_tests.test_http_bridge_sends_to_python_server
+			output.append ("OK%N")
+
+			output.append ("  test_http_bridge_handles_errors: ")
+			l_tests.test_http_bridge_handles_errors
 			output.append ("OK%N")
 		end
 
