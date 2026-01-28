@@ -12,7 +12,7 @@
 - **Message serialization:** JSON and binary formats with 4-byte big-endian length prefix
 - **Freeze mechanism:** SCOOP-safe message immutability before transmission
 - **Design by Contract:** Complete preconditions, postconditions, invariants on all classes
-- **Comprehensive test suite:** 27 tests covering serialization, framing, lifecycle, and edge cases
+- **Comprehensive test suite:** 34 tests covering serialization, framing, lifecycle, integration, and adversarial cases
 - **Production documentation:** 7 HTML documentation pages (index, quick API, user guide, API reference, architecture, cookbook)
 - **SCOOP compatibility:** Thread-safe message handling for concurrent Eiffel systems
 - **Void safety:** Full null-safety with detachable/attached type checking
@@ -22,7 +22,7 @@
 - Void-safe implementation (void_safety="all")
 - SCOOP-compatible concurrency (concurrency=scoop)
 - Zero compilation warnings
-- 100% test pass rate (27/27 tests passing)
+- 100% test pass rate (34/34 tests passing)
 - Contracts verified by adversarial test suite
 - MML ready (simple_mml dependency for advanced postconditions)
 
