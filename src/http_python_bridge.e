@@ -270,6 +270,7 @@ feature {NONE} -- Implementation Details
 			l_message_id: STRING_32
 			l_message_type: STRING_32
 			l_type_lower: STRING_32
+			l_obj: SIMPLE_JSON_OBJECT
 		do
 			logger.log_info ("extract_response_from_body: parsing JSON")
 			logger.log_info ("Body content (first 300 chars): " + a_body.substring (1, (a_body.count.min (300))))
@@ -280,7 +281,8 @@ feature {NONE} -- Implementation Details
 				logger.log_info ("JSON parse succeeded")
 				logger.log_info ("Parsed JSON type - is_object: " + l_parsed.is_object.out + ", is_array: " + l_parsed.is_array.out + ", is_string: " + l_parsed.is_string.out + ", is_number: " + l_parsed.is_number.out + ", is_null: " + l_parsed.is_null.out)
 				-- Check if it's an object
-				if l_parsed.is_object and then attached {SIMPLE_JSON_OBJECT} l_parsed as l_obj then
+				if l_parsed.is_object then
+					l_obj := l_parsed.as_object
 					logger.verbose ("Parsed JSON is object")
 					-- Get message type
 					if attached l_obj.item ("type") as l_type_val then
@@ -331,12 +333,14 @@ feature {NONE} -- Implementation Details
 			-- Create PYTHON_VALIDATION_RESPONSE from JSON object.
 		local
 			l_response: PYTHON_VALIDATION_RESPONSE
+			l_attrs_obj: SIMPLE_JSON_OBJECT
 		do
 			create l_response.make (a_message_id)
 
 			-- Copy attributes from JSON
 			if attached a_json.item ("attributes") as l_attrs_val then
-				if l_attrs_val.is_object and then attached {SIMPLE_JSON_OBJECT} l_attrs_val as l_attrs_obj then
+				if l_attrs_val.is_object then
+					l_attrs_obj := l_attrs_val.as_object
 					-- Copy result attribute
 					if attached l_attrs_obj.item ("result") as l_result then
 						l_response.set_attribute ("result", l_result)
@@ -360,12 +364,14 @@ feature {NONE} -- Implementation Details
 			-- Create PYTHON_ERROR message from JSON object.
 		local
 			l_error: PYTHON_ERROR
+			l_attrs_obj: SIMPLE_JSON_OBJECT
 		do
 			create l_error.make (a_message_id)
 
 			-- Copy error attributes from JSON
 			if attached a_json.item ("attributes") as l_attrs_val then
-				if l_attrs_val.is_object and then attached {SIMPLE_JSON_OBJECT} l_attrs_val as l_attrs_obj then
+				if l_attrs_val.is_object then
+				l_attrs_obj := l_attrs_val.as_object
 					-- Copy error_code attribute
 					if attached l_attrs_obj.item ("error_code") as l_code then
 						l_error.set_attribute ("error_code", l_code)

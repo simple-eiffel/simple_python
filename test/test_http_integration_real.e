@@ -111,6 +111,14 @@ feature -- Tests
 			-- Send message to Python server
 			logger.log_info ("Sending message to Python server")
 			l_result := l_bridge.send_message (l_message)
+
+			-- If send failed, log the error
+			if not l_result then
+				logger.log_error ("Message send FAILED!")
+				logger.log_error ("Bridge error state: has_error=" + l_bridge.has_error.out)
+				logger.log_error ("Bridge error message: " + l_bridge.last_error_message)
+			end
+
 			assert ("message_sent_successfully", l_result)
 			logger.log_info ("Message sent successfully")
 
