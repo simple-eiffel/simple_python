@@ -9,9 +9,10 @@
 <body>
     <header>
         <div class="logo-container">
-            <h1>simple_python</h1>
+            <img src="images/logo.svg" alt="simple_python logo" class="logo">
         </div>
-        <p class="tagline">Ultra-low-latency Eiffel-Python communication via HTTP, IPC, or gRPC</p>
+        <h1>simple_python</h1>
+        <p class="tagline">Production-ready Eiffel-Python bridge for ultra-low-latency validation communication</p>
         <div class="badges">
             <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="MIT License">
             <img src="https://img.shields.io/badge/Eiffel-25.02-purple.svg" alt="Eiffel 25.02">
@@ -22,7 +23,7 @@
     <nav>
         <ul>
             <li><a href="#overview">Overview</a></li>
-            <li><a href="quick.html">QUICK API</a></li>
+            <li><a href="quick.html">Quick API</a></li>
             <li><a href="user-guide.html">User Guide</a></li>
             <li><a href="api-reference.html">API Reference</a></li>
             <li><a href="architecture.html">Architecture</a></li>
@@ -35,28 +36,88 @@
         <section id="overview">
             <h2>Overview</h2>
             <p>
-                <strong>simple_python</strong> is a production-ready Eiffel library for communicating with Python orchestration systems.
-                It provides three pluggable transport protocols: HTTP, IPC (Windows named pipes), and gRPC.
+                <strong>simple_python</strong> is a production-ready Eiffel library for communicating with
+                Python services via pluggable transport protocols. It provides <strong>HTTP/REST communication</strong>
+                (with JSON serialization), <strong>IPC</strong> (Windows named pipes for ultra-low-latency), and
+                extensible design for <strong>gRPC</strong> integration.
             </p>
             <p>
-                Perfect for validation workflows where Eiffel hardware control boards need to communicate with Python machine-learning pipelines
-                with guaranteed ultra-low latency (&le;10ms p95 for 1KB payloads via IPC).
+                Unlike raw socket APIs that require extensive framing and serialization code, simple_python
+                reduces typical Eiffel-Python bridge implementations from 50-100 lines to just 5-10 lines,
+                while maintaining full control through Design by Contract.
             </p>
             <p>
                 Part of the <a href="https://github.com/simple-eiffel">Simple Eiffel</a> ecosystem.
             </p>
         </section>
 
+        <section id="quick-start">
+            <h2>Quick Start</h2>
+
+            <h3>Installation</h3>
+            <ol>
+                <li>Set the environment variable:
+<pre><code>export SIMPLE_EIFFEL=D:\prod</code></pre>
+                </li>
+                <li>Add to your ECF file:
+<pre><code>&lt;library name="simple_python" location="$SIMPLE_EIFFEL/simple_python/simple_python.ecf"/&gt;</code></pre>
+                </li>
+            </ol>
+
+            <h3>HTTP Bridge Communication</h3>
+<pre><code><span class="keyword">local</span>
+    bridge: <span class="type">HTTP_PYTHON_BRIDGE</span>
+    request: <span class="type">PYTHON_VALIDATION_REQUEST</span>
+<span class="keyword">do</span>
+    <span class="keyword">create</span> bridge.make_with_host_port (<span class="string">"localhost"</span>, 8080)
+
+    <span class="keyword">create</span> request.make (<span class="string">"validation_001"</span>)
+    request.freeze
+
+    <span class="keyword">if</span> bridge.send_message (request) <span class="keyword">then</span>
+        <span class="keyword">if</span> <span class="keyword">attached</span> bridge.receive_message <span class="keyword">as</span> response <span class="keyword">then</span>
+            print (response.to_json)
+        <span class="keyword">end</span>
+    <span class="keyword">else</span>
+        print (<span class="string">"Error: "</span> + bridge.last_error_message)
+    <span class="keyword">end</span>
+<span class="keyword">end</span></code></pre>
+        </section>
+
         <section id="features">
-            <h2>Features</h2>
-            <ul>
-                <li><strong>Multiple Transports:</strong> HTTP, IPC (Windows pipes), gRPC (pluggable design)</li>
-                <li><strong>Message Types:</strong> Validation requests/responses with custom attributes</li>
-                <li><strong>Serialization:</strong> JSON and binary formats with 4-byte length prefix framing</li>
-                <li><strong>SCOOP-Safe:</strong> Concurrent-ready message handling for multi-threaded Eiffel systems</li>
-                <li><strong>Design by Contract:</strong> Complete preconditions, postconditions, and invariants</li>
-                <li><strong>Void-Safe:</strong> Full null-safety with detachable/attached type checking</li>
-            </ul>
+            <h2>Key Features</h2>
+
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>HTTP Bridge</h3>
+                    <p>JSON over HTTP/1.1 with configurable timeouts. Production-ready implementation with actual HTTP communication.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>SCOOP Compatible</h3>
+                    <p>Thread-safe message handling with automatic freezing for concurrent access in SCOOP programs.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>Design by Contract</h3>
+                    <p>Full preconditions, postconditions, and invariants on all classes and features.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>Message Serialization</h3>
+                    <p>JSON and binary formats with 4-byte big-endian length prefix for reliable framing.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>Pluggable Transports</h3>
+                    <p>HTTP, IPC (Windows named pipes), and gRPC via unified PYTHON_BRIDGE interface.</p>
+                </div>
+
+                <div class="feature-card">
+                    <h3>Void Safe</h3>
+                    <p>Complete null-safety guarantees with void_safety="all" throughout.</p>
+                </div>
+            </div>
         </section>
 
         <section id="status">
@@ -64,16 +125,26 @@
             <p><strong>v1.0.0 - Production Ready</strong></p>
             <ul>
                 <li>27 tests passing (100% pass rate)</li>
+                <li>HTTP_PYTHON_BRIDGE: Actual HTTP communication with JSON serialization</li>
+                <li>SCOOP consumer integration verified</li>
                 <li>Design by Contract throughout</li>
-                <li>SCOOP-compatible (concurrent-safe)</li>
-                <li>Void-safe (null-safety)</li>
-                <li>Zero compilation warnings</li>
+                <li>Void-safe implementation</li>
             </ul>
         </section>
 
-        <section id="quick-start">
-            <h2>Quick Start</h2>
-            <p>See <a href="quick.html">Quick API</a> for immediate examples and basic usage patterns.</p>
+        <section id="architecture">
+            <h2>Architecture</h2>
+            <p>
+                <strong>simple_python</strong> follows the <strong>pluggable bridge pattern</strong>, allowing
+                different transport protocols while maintaining a unified interface:
+            </p>
+            <ul>
+                <li><strong>PYTHON_BRIDGE</strong> - Abstract interface defining bridge contract</li>
+                <li><strong>HTTP_PYTHON_BRIDGE</strong> - HTTP/REST implementation (production-ready)</li>
+                <li><strong>IPC_PYTHON_BRIDGE</strong> - Named pipes implementation (extensible)</li>
+                <li><strong>GRPC_PYTHON_BRIDGE</strong> - gRPC implementation (Phase 2)</li>
+                <li><strong>PYTHON_MESSAGE</strong> - Base for all message types</li>
+            </ul>
         </section>
 
         <footer>

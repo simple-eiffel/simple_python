@@ -1,0 +1,31 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="200" height="200" fill="#667eea"/>
+
+  <!-- Eiffel side (left) -->
+  <g stroke="#ffffff" stroke-width="2" fill="none">
+    <!-- Tower-like structure -->
+    <line x1="50" y1="30" x2="50" y2="170"/>
+    <line x1="40" y1="50" x2="60" y2="50"/>
+    <line x1="40" y1="80" x2="60" y2="80"/>
+    <line x1="40" y1="110" x2="60" y2="110"/>
+    <line x1="40" y1="140" x2="60" y2="140"/>
+  </g>
+
+  <!-- Python side (right) -->
+  <g stroke="#764ba2" stroke-width="2" fill="none">
+    <!-- Interconnected lines -->
+    <circle cx="140" cy="60" r="15"/>
+    <circle cx="140" cy="100" r="15"/>
+    <circle cx="140" cy="140" r="15"/>
+    <line x1="155" y1="60" x2="170" y2="60"/>
+    <line x1="155" y1="100" x2="170" y2="100"/>
+    <line x1="155" y1="140" x2="170" y2="140"/>
+  </g>
+
+  <!-- Bridge connecting them -->
+  <path d="M 60 100 Q 100 80 140 100" stroke="#00d4aa" stroke-width="2" fill="none" stroke-dasharray="5,5"/>
+
+  <!-- Text -->
+  <text x="100" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#ffffff" font-weight="bold">Bridge</text>
+</svg>
