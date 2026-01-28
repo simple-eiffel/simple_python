@@ -107,7 +107,7 @@ feature {NONE} -- Process Management
 	get_project_root: STRING_32
 			-- Get simple_python project root directory.
 		once
-			Result := "D:\prod\simple_python"
+			Result := "."
 		end
 
 	clean_test_artifacts
@@ -119,8 +119,8 @@ feature {NONE} -- Process Management
 		do
 			-- List of test artifact files to clean up
 			l_files := <<
-				"D:\prod\simple_python\test_output.txt",
-				"D:\prod\simple_python\integration_test.log"
+				"./test_output.txt",
+				"./integration_test.log"
 			>>
 
 			from l_i := l_files.lower

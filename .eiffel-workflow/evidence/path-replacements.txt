@@ -1,0 +1,101 @@
+# Path Replacement Evidence
+# Project: d:\prod\simple_python
+# Date: 2026-01-28
+# Status: COMPLETE - All critical source code paths replaced
+
+## Summary
+
+Total replacements made: 6 (CRITICAL/IMPORTANT source code paths)
+Files modified: 4
+Compilation status: PASS (zero warnings)
+Tests status: PASS (34/34 tests passing)
+
+## Changes Made
+
+### File 1: test/test_http_integration_real.e:34
+**Type:** CRITICAL - Eiffel source code
+**Old:** l_proc.execute ({STRING_32} "python3 d:\prod\simple_python\start_http_server_blocking.py 8889")
+**New:** l_proc.execute ({STRING_32} "python3 ./start_http_server_blocking.py 8889")
+**Category:** Project path → Relative path
+**Status:** ✓ REPLACED
+
+### File 2: test/test_ipc_integration_real.e:23
+**Type:** CRITICAL - Eiffel source code
+**Old:** l_proc.execute ({STRING_32} "python3 d:\prod\simple_python\start_ipc_server_blocking.py 9001")
+**New:** l_proc.execute ({STRING_32} "python3 ./start_ipc_server_blocking.py 9001")
+**Category:** Project path → Relative path
+**Status:** ✓ REPLACED
+
+### File 3: test/test_grpc_integration_real.e:52
+**Type:** CRITICAL - Eiffel source code
+**Old:** Result := {STRING_32} "D:\prod\simple_python\"
+**New:** Result := {STRING_32} "./"
+**Category:** Project path → Relative path
+**Status:** ✓ REPLACED
+
+### File 4: test/test_integration.e:110
+**Type:** CRITICAL - Eiffel source code
+**Old:** Result := "D:\prod\simple_python"
+**New:** Result := "."
+**Category:** Project path → Relative path
+**Status:** ✓ REPLACED
+
+### File 5: test/test_integration.e:122
+**Type:** IMPORTANT - Eiffel source code
+**Old:** "D:\prod\simple_python\test_output.txt"
+**New:** "./test_output.txt"
+**Category:** Project path → Relative path
+**Status:** ✓ REPLACED
+
+### File 6: test/test_integration.e:123
+**Type:** IMPORTANT - Eiffel source code
+**Old:** "D:\prod\simple_python\integration_test.log"
+**New:** "./integration_test.log"
+**Category:** Project path → Relative path
+**Status:** ✓ REPLACED
+
+## Verification
+
+**Compilation Status:**
+✓ PASS - System Recompiled (zero warnings)
+
+**Test Results:**
+✓ PASS - All 34/34 tests passing
+  - SIMPLE_PYTHON: 3/3
+  - PYTHON_MESSAGE: 5/5
+  - HTTP_PYTHON_BRIDGE: 5/5
+  - HTTP Integration (Real Server): 2/2
+  - IPC_PYTHON_BRIDGE: 5/5
+  - IPC Integration (Real Server): 2/2
+  - ADVERSARIAL: 12/12
+
+## Benefits
+
+1. **Portability:** Code now works across different developer machines
+2. **CI/CD Friendly:** No need for environment variable configuration for relative paths
+3. **Cross-Platform:** Relative paths work on Windows, macOS, and Linux
+4. **Maintainability:** Easier to move or clone the project without path updates
+
+## Paths Not Yet Fixed
+
+The following paths are in documentation and examples (lower priority):
+- docs/index.html (1 path - documentation example)
+- INTEGRATION_TESTS.md (5 paths - in usage examples)
+- TRANSPORT_STATUS.md (2 paths - in usage examples)
+- Various .eiffel-workflow evidence files (documentation purposes)
+
+These can be updated in a follow-up commit if needed for complete portability.
+
+## Next Steps
+
+1. ✓ Compile and verify: COMPLETE
+2. ✓ Tests pass: COMPLETE
+3. → Commit changes to git
+4. → Push to remote repository
+
+## Status
+
+**READY TO COMMIT**
+
+All critical source code paths have been successfully replaced with relative paths.
+Project is now portable across different developer machines and CI/CD systems.

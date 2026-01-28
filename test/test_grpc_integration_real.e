@@ -49,7 +49,7 @@ feature {NONE} -- Process Management
 	server_script_path: STRING_32
 			-- Path to the directory containing server startup scripts.
 		do
-			Result := {STRING_32} "D:\prod\simple_python\"
+			Result := {STRING_32} "./"
 		end
 
 	sleep_milliseconds (a_ms: INTEGER)

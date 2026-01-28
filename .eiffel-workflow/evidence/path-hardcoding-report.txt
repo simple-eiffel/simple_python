@@ -1,0 +1,241 @@
+# Path Hardcoding Report
+# Project: d:\prod\simple_python
+# Date: 2026-01-28
+# Status: SCAN COMPLETE - 21 Hard-Coded Paths Found
+
+## Summary
+
+Total hard-coded paths found: 21
+- Ecosystem paths: 1 (CRITICAL - should fix)
+- Project paths: 9 (IMPORTANT - should fix)
+- System paths: 0
+- Developer paths: 0
+- Documentation/Reference paths: 11 (LOW - in docs and examples)
+
+## Findings by Category
+
+### ECOSYSTEM PATHS (CRITICAL - Use $SIMPLE_EIFFEL)
+
+**1. docs/index.html:60**
+   Pattern: D:\prod (in example/documentation)
+   Context: <pre><code>export SIMPLE_EIFFEL=D:\prod</code></pre>
+   Replace with: Comment or update example documentation
+   Priority: LOW (this is a documentation example showing how to set SIMPLE_EIFFEL)
+
+### PROJECT PATHS (IMPORTANT - Use $PROJECT_ROOT or relative paths)
+
+**1. test/test_http_integration_real.e:34**
+   Pattern: d:\prod\simple_python\start_http_server_blocking.py
+   Context: l_proc.execute ({STRING_32} "python3 d:\prod\simple_python\start_http_server_blocking.py 8889")
+   File type: Eiffel source code
+   Replace with: environment.get("PROJECT_ROOT") + "/start_http_server_blocking.py" or relative path
+   Priority: CRITICAL
+
+**2. test/test_integration.e:110**
+   Pattern: D:\prod\simple_python
+   Context: Result := "D:\prod\simple_python"
+   File type: Eiffel source code
+   Replace with: environment.get("PROJECT_ROOT") or current directory
+   Priority: CRITICAL
+
+**3. test/test_integration.e:122**
+   Pattern: D:\prod\simple_python\test_output.txt
+   Context: "D:\prod\simple_python\test_output.txt",
+   File type: Eiffel source code
+   Replace with: environment.get("PROJECT_ROOT") + "/test_output.txt" or relative path
+   Priority: IMPORTANT
+
+**4. test/test_integration.e:123**
+   Pattern: D:\prod\simple_python\integration_test.log
+   Context: "D:\prod\simple_python\integration_test.log"
+   File type: Eiffel source code
+   Replace with: environment.get("PROJECT_ROOT") + "/integration_test.log" or relative path
+   Priority: IMPORTANT
+
+**5. test/test_ipc_integration_real.e:23**
+   Pattern: d:\prod\simple_python\start_ipc_server_blocking.py
+   Context: l_proc.execute ({STRING_32} "python3 d:\prod\simple_python\start_ipc_server_blocking.py 9001")
+   File type: Eiffel source code
+   Replace with: environment.get("PROJECT_ROOT") + "/start_ipc_server_blocking.py" or relative path
+   Priority: CRITICAL
+
+**6. test/test_grpc_integration_real.e:52**
+   Pattern: D:\prod\simple_python\
+   Context: Result := {STRING_32} "D:\prod\simple_python\"
+   File type: Eiffel source code
+   Replace with: environment.get("PROJECT_ROOT") + "/" or relative path
+   Priority: CRITICAL
+
+### DOCUMENTATION/REFERENCE PATHS (LOW - In examples and documentation)
+
+These are in documentation files, evidence files, and examples. They should be updated for completeness but are lower priority.
+
+**7. INTEGRATION_TESTS.md:24** - cd d:\prod\simple_python
+**8. INTEGRATION_TESTS.md:40** - cd d:\prod\simple_python
+**9. INTEGRATION_TESTS.md:41** - /d/prod/ec.sh reference
+**10. INTEGRATION_TESTS.md:76** - /d/prod/ec.sh reference
+**11. INTEGRATION_TESTS.md:261** - /d/prod/ec.sh reference
+**12. intent-v2.md:392** - /eiffel.contracts d:\prod\simple_python
+**13. TRANSPORT_STATUS.md:165** - cd /d/prod/simple_python
+**14. TRANSPORT_STATUS.md:166** - /d/prod/ec.sh reference
+**15-21. Evidence files** - Various .eiffel-workflow/evidence/*.txt files contain project paths for documentation purposes
+
+## Recommendations
+
+### IMMEDIATE (CRITICAL) - Fix Source Code Hard-Coding
+1. **test/test_http_integration_real.e:34** - Replace with relative path to start_http_server_blocking.py
+2. **test/test_ipc_integration_real.e:23** - Replace with relative path to start_ipc_server_blocking.py
+3. **test/test_grpc_integration_real.e:52** - Replace with environment variable or relative path
+4. **test/test_integration.e:110, 122, 123** - Replace project paths with environment variable or relative paths
+
+### IMPORTANT - Update Documentation
+1. **INTEGRATION_TESTS.md** - Replace hardcoded paths with environment variable or relative paths
+2. **TRANSPORT_STATUS.md** - Update references to use environment variables
+
+### OPTIONAL - Documentation Files
+The evidence files and intent documents contain hardcoded paths for documentation purposes. These can be left as-is since they're not executed code.
+
+## Replacement Strategy
+
+### For Eiffel Code (test files):
+
+**Current Pattern:**
+```eiffel
+l_proc.execute ({STRING_32} "python3 d:\prod\simple_python\start_http_server_blocking.py 8889")
+```
+
+**Option 1 - Using Environment Variable:**
+```eiffel
+local
+    l_project_root: STRING_32
+do
+    l_project_root := environment.get ("PROJECT_ROOT")
+    if l_project_root = Void then
+        l_project_root := "."  -- Fallback to current directory
+    end
+    l_proc.execute ({STRING_32} "python3 " + l_project_root + "/start_http_server_blocking.py 8889")
+end
+```
+
+**Option 2 - Using Current Directory (RECOMMENDED for relative server scripts):**
+```eiffel
+local
+    l_script_path: STRING_32
+do
+    l_script_path := (create {DIRECTORY}.make_current).full_path + "/start_http_server_blocking.py"
+    l_proc.execute ({STRING_32} "python3 " + l_script_path + " 8889")
+end
+```
+
+**Option 3 - Simple Relative Path (SIMPLEST):**
+```eiffel
+l_proc.execute ({STRING_32} "python3 ./start_http_server_blocking.py 8889")
+```
+
+### For Documentation Files (Markdown):
+
+**Current:**
+```
+cd d:\prod\simple_python
+/d/prod/ec.sh -batch ...
+```
+
+**Recommended:**
+```
+cd $PROJECT_ROOT
+$SIMPLE_EIFFEL/ec.sh -batch ...
+# Or for developers: cd <your-simple_python-path>
+```
+
+## Environment Variables Setup
+
+**For development (in shell):**
+```bash
+# Windows CMD
+set SIMPLE_EIFFEL=D:\prod
+set PROJECT_ROOT=D:\prod\simple_python
+
+# Windows PowerShell
+$env:SIMPLE_EIFFEL = "D:\prod"
+$env:PROJECT_ROOT = "D:\prod\simple_python"
+
+# Unix/macOS/WSL
+export SIMPLE_EIFFEL=/d/prod
+export PROJECT_ROOT=/d/prod/simple_python
+```
+
+**For CI/CD (GitHub Actions):**
+```yaml
+env:
+  SIMPLE_EIFFEL: ${{ github.workspace }}/..
+  PROJECT_ROOT: ${{ github.workspace }}
+```
+
+## Verification After Fix
+
+1. **Eiffel files compile:**
+   ```bash
+   cd d:\prod\simple_python
+   /d/prod/ec.sh -batch -config simple_python.ecf -target simple_python_tests -c_compile
+   # Should show "System Recompiled"
+   ```
+
+2. **Tests still pass:**
+   ```bash
+   ./EIFGENs/simple_python_tests/W_code/simple_python.exe
+   # Should show "34/34 tests passing"
+   ```
+
+3. **Integration tests work:**
+   Each test that launches Python servers should verify server is running before attempting connection.
+
+## Next Steps
+
+To apply these recommendations:
+
+1. Run with --fix flag to interactively apply replacements:
+   ```
+   /eiffel.paths d:\prod\simple_python --fix
+   ```
+
+2. Or apply manually in this order:
+   - test/test_http_integration_real.e:34
+   - test/test_ipc_integration_real.e:23
+   - test/test_grpc_integration_real.e:52
+   - test/test_integration.e (3 occurrences)
+   - INTEGRATION_TESTS.md
+   - TRANSPORT_STATUS.md
+
+3. Compile and verify tests pass
+
+4. Commit with message:
+   ```
+   refactor: replace hard-coded paths with environment variables
+
+   - Replace d:\prod\simple_python with $PROJECT_ROOT
+   - Use relative paths for server launcher scripts
+   - Update documentation with portable path references
+   - All tests passing, compilation successful
+   ```
+
+## Files Affected
+
+**Source Code (Eiffel):**
+- test/test_http_integration_real.e (1 critical path)
+- test/test_ipc_integration_real.e (1 critical path)
+- test/test_grpc_integration_real.e (1 critical path)
+- test/test_integration.e (3 important paths)
+
+**Documentation:**
+- INTEGRATION_TESTS.md (5 paths in examples)
+- TRANSPORT_STATUS.md (2 paths in examples)
+
+**Total Critical Fixes Needed:** 6
+**Total Important Fixes Needed:** 3
+**Total Optional Fixes Needed:** 12+ (documentation/examples)
+
+---
+
+**Status:** SCAN COMPLETE
+**Recommendation:** Run with `--fix` to apply critical and important replacements
+**Date:** 2026-01-28

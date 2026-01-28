@@ -31,7 +31,7 @@ feature -- Setup/Teardown
 
 			-- Start HTTP server using blocking launcher (waits for port to be listening)
 			logger.log_info ("Starting Python HTTP server on port 8889 using blocking launcher...")
-			l_proc.execute ({STRING_32} "python3 d:\prod\simple_python\start_http_server_blocking.py 8889")
+			l_proc.execute ({STRING_32} "python3 ./start_http_server_blocking.py 8889")
 
 			logger.log_info ("TEST_HTTP_INTEGRATION_REAL setup: END")
 		end
