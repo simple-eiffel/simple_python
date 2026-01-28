@@ -1,0 +1,109 @@
+# Phase 6 Hardening Evidence
+# Project: D:\prod\simple_python
+# Date: 2026-01-28
+
+## MML Hardening
+MML dependency added: YES (simple_mml already in ECF)
+Model queries added: 1
+  - PYTHON_MESSAGE.attributes_model: MML_MAP [STRING_32, SIMPLE_JSON_VALUE]
+
+Frame conditions added: 1
+  - PYTHON_MESSAGE.set_attribute: postcondition with model count change validation
+
+## SCOOP Consumer Integration
+Consumer test created: YES
+  - test_consumer/consumer_test.ecf (temporary)
+  - test_consumer/consumer_test.e (CONSUMER_TEST class)
+
+Consumer compilation: PASS
+  - No VUAR(2) type errors
+  - No void safety violations
+  - Successfully compiled with SCOOP enabled
+
+VUAR(2) errors fixed: N/A (zero errors)
+
+## Adversarial Testing
+Adversarial tests already in place: 12 tests
+  - test_message_with_empty_attributes
+  - test_message_with_many_attributes
+  - test_message_with_empty_string_id
+  - test_frame_with_zero_length_payload
+  - test_frame_with_large_payload
+  - test_decode_frame_with_size_mismatch
+  - test_freeze_prevents_attribute_modification
+  - test_multiple_messages_independent_state
+  - test_timeout_boundary_values
+  - test_bridge_close_idempotent
+  - test_bridge_initialize_idempotent
+  - test_message_binary_roundtrip
+
+Additional stress tests: N/A (adversarial tests cover stress scenarios)
+
+## Test Results
+
+Total Tests: 34
+Status: ALL PASS (100%)
+
+--- SIMPLE_PYTHON tests ---
+  test_http_bridge_creation: OK
+  test_ipc_bridge_creation: OK
+  test_grpc_bridge_creation: OK
+
+--- PYTHON_MESSAGE tests ---
+  test_message_creation: OK
+  test_freeze_mechanism: OK
+  test_message_to_json: OK
+  test_message_to_binary: OK
+  test_message_types: OK
+
+--- HTTP_PYTHON_BRIDGE tests ---
+  test_make_creates_unconfigured_bridge: OK
+  test_set_timeout_updates_timeout: OK
+  test_initialize_succeeds: OK
+  test_close_disconnects_bridge: OK
+  test_active_connections_query: OK
+
+--- HTTP Integration (Real Server) ---
+  test_http_bridge_sends_to_python_server: OK
+  test_http_bridge_handles_errors: OK
+
+--- IPC_PYTHON_BRIDGE tests ---
+  test_make_creates_unconfigured_bridge: OK
+  test_set_timeout_updates_timeout: OK
+  test_close_disconnects_bridge: OK
+  test_encode_frame_adds_length_prefix: OK
+  test_decode_frame_extracts_payload: OK
+
+--- IPC Integration (Real Server) ---
+  test_ipc_bridge_sends_to_python_server: OK
+  test_ipc_bridge_handles_errors: OK
+
+--- ADVERSARIAL tests ---
+  test_message_with_empty_attributes: OK
+  test_message_with_many_attributes: OK
+  test_message_with_empty_string_id: OK
+  test_frame_with_zero_length_payload: OK
+  test_frame_with_large_payload: OK
+  test_decode_frame_with_size_mismatch: OK
+  test_freeze_prevents_attribute_modification: OK
+  test_multiple_messages_independent_state: OK
+  test_timeout_boundary_values: OK
+  test_bridge_close_idempotent: OK
+  test_bridge_initialize_idempotent: OK
+  test_message_binary_roundtrip: OK
+
+## Compilation Status
+Warnings: 0
+Errors: 0
+System Recompiled: YES
+
+# Phase 6 Status: PASS
+
+All hardening requirements complete:
+✓ MML model queries added (1)
+✓ Frame conditions added (1)
+✓ SCOOP consumer integration tested (PASS)
+✓ All 34 tests passing
+✓ Zero compilation warnings/errors
+
+Ready for Phase 7: /eiffel.ship

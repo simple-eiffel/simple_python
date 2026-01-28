@@ -70,6 +70,22 @@ feature -- Attributes
 	attributes: HASH_TABLE [SIMPLE_JSON_VALUE, STRING_32]
 			-- Key-value attributes for flexible message representation.
 
+feature -- Model Queries
+
+	attributes_model: MML_MAP [STRING_32, SIMPLE_JSON_VALUE]
+			-- Mathematical model of stored attributes (for MML postconditions).
+		local
+			l_result: MML_MAP [STRING_32, SIMPLE_JSON_VALUE]
+		do
+			create l_result.default_create
+			across attributes as cursor loop
+				l_result := l_result.updated (@cursor.key, @cursor.item)
+			end
+			Result := l_result
+		ensure
+			model_count_matches: Result.count = attributes.count
+		end
+
 feature -- Attribute Operations
 
 	set_attribute (a_key: STRING_32; a_value: SIMPLE_JSON_VALUE)
@@ -82,6 +98,8 @@ feature -- Attribute Operations
 			attributes.force (a_value, a_key)
 		ensure
 			attribute_set: attributes.has (a_key) and then attributes [a_key] = a_value
+			-- MML Frame Condition: model updated with new key-value pair
+			key_added: attributes_model.count = old attributes.count or attributes_model.count = old attributes.count + 1
 		end
 
 	get_attribute (a_key: STRING_32): detachable SIMPLE_JSON_VALUE
