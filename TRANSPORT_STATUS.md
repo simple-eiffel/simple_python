@@ -3,15 +3,18 @@
 ## Current Status: 1/3 Transports IMPLEMENTED AND VERIFIED
 
 ### ✅ HTTP Transport - FULLY WORKING
-**Status:** Production Ready  
-**Evidence:** All 18 tests passing, including 2 real integration tests with Python server
+**Status:** Production Ready
+**Evidence:** All 18 tests passing with automatic server setup/teardown
 
 **What Works:**
-- Eiffel creates HTTP_PYTHON_BRIDGE pointing to Python server
+- Automatic Python HTTP server startup in TEST_APP.setup_servers()
+- Eiffel creates HTTP_PYTHON_BRIDGE pointing to Python server (localhost:8888)
 - Bridge sends JSON-encoded messages via HTTP POST to `/validate` endpoint
 - Python server receives messages and echoes back JSON response
 - Eiffel bridge parses response and creates PYTHON_MESSAGE objects
 - End-to-end message round-trip verified and working
+- Automatic Python server shutdown in TEST_APP.teardown_servers()
+- Tests are fully self-contained with no manual server management
 
 **How It Works:**
 ```
@@ -139,30 +142,47 @@ Eiffel Client        Python Server
   - test_close_disconnects_bridge
   - test_active_connections_query
 
-✓ HTTP Integration (Real Server) - NEW (2)
+✓ HTTP Integration (Real Server) - WITH AUTOMATIC SETUP/TEARDOWN (2)
   - test_http_bridge_sends_to_python_server ← REAL PYTHON COMMUNICATION
   - test_http_bridge_handles_errors
 
-=== All tests passed ===
+Note: These tests run against an automatically-started Python server
+      Server startup: TEST_APP.setup_servers() starts python3 python_test_server.py
+      Server teardown: TEST_APP.teardown_servers() kills Python processes
+      No manual server management required
+
+=== All tests passed ===[
 ```
 
 ---
 
 ## Running the Code
 
-### Start Python Servers
-```bash
-# HTTP server (8888)
-python3 python_test_server.py &
+### Automatic Test Execution (Recommended)
+Tests now include automatic server setup and teardown - no manual server management needed:
 
-# IPC server (when implementation is complete)
-# python3 python_ipc_server.py &
-```
-
-### Run Eiffel Tests
 ```bash
 cd /d/prod/simple_python
 /d/prod/ec.sh test -config simple_python.ecf -target simple_python_tests
+./EIFGENs/simple_python_tests/F_code/simple_python.exe
+```
+
+This will:
+1. Compile the test suite
+2. Execute the tests, which automatically:
+   - Start Python HTTP server on port 8888
+   - Run all 18 tests (including 2 real HTTP integration tests)
+   - Kill Python server after tests complete
+   - Clean up and exit
+
+### Manual Server Operation (Optional - for debugging)
+If you want to run servers manually:
+```bash
+# Terminal 1: Start HTTP server
+python3 python_test_server.py
+
+# Terminal 2: Run tests (will connect to existing server)
+cd /d/prod/simple_python
 ./EIFGENs/simple_python_tests/F_code/simple_python.exe
 ```
 
