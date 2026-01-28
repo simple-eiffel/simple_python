@@ -22,8 +22,8 @@ feature {NONE} -- Setup/Teardown
 			-- Start HTTP server in background
 			l_proc.execute ({STRING_32} "start /B python3 python_test_server.py")
 
-			-- Wait for server to initialize
-			sleep_milliseconds (2000)
+			-- Wait for server to initialize (Python startup can be slow)
+			sleep_milliseconds (3000)
 		end
 
 	teardown
@@ -64,19 +64,46 @@ feature -- Tests
 			l_bridge: HTTP_PYTHON_BRIDGE
 			l_message: PYTHON_VALIDATION_REQUEST
 			l_result: BOOLEAN
+			l_response: detachable PYTHON_MESSAGE
 		do
-			-- Send a message to the running Python test server via HTTP.
+			-- Send a message to the running Python test server via HTTP and validate round-trip.
 			-- Create bridge pointing to Python server on localhost:8888
 			create l_bridge.make_with_host_port ({STRING_32} "127.0.0.1", 8888)
 
 			-- Initialize bridge
 			l_result := l_bridge.initialize
+			assert ("bridge_initialized", l_result)
 
-			-- Create a test message
+			-- Create a test message with specific ID
 			create l_message.make ({STRING_32} "test_msg_001")
 
 			-- Send message to Python server
 			l_result := l_bridge.send_message (l_message)
+			assert ("message_sent_successfully", l_result)
+
+			-- Receive the response from Python server
+			l_response := l_bridge.receive_message
+
+			-- Validate response is not void (server acknowledged)
+			assert ("response_not_void", l_response /= Void)
+
+			-- Validate response message ID matches what we sent
+			if attached l_response then
+				assert ("response_message_id_matches", l_response.message_id.same_string ({STRING_32} "test_msg_001"))
+
+				-- Validate response type is VALIDATION_RESPONSE
+				assert ("response_type_correct", l_response.message_type.same_string ({STRING_32} "VALIDATION_RESPONSE"))
+
+				-- Validate response has attributes (Python server sent validation result)
+				assert ("response_has_attributes", l_response.attribute_count > 0)
+
+				-- Validate specific attribute: result should be "PASS"
+				if l_response.has_attribute ({STRING_32} "result") then
+					if attached l_response.get_attribute ({STRING_32} "result") as l_result_attr then
+					assert ("response_result_is_pass", l_result_attr.as_string_32.same_string ({STRING_32} "PASS"))
+				end
+				end
+			end
 		end
 
 	test_http_bridge_handles_errors
@@ -93,12 +120,20 @@ feature -- Tests
 
 			-- Initialize bridge
 			l_result := l_bridge.initialize
+			assert ("bridge_initialized", l_result)
 
 			-- Create a test message
 			create l_message.make ({STRING_32} "test_msg_002")
 
-			-- Try to send message (should fail gracefully)
+			-- Try to send message to non-existent server (should fail gracefully)
 			l_result := l_bridge.send_message (l_message)
+			assert ("send_fails_gracefully", not l_result)
+
+			-- Validate error was recorded
+			assert ("error_flag_set", l_bridge.has_error)
+
+			-- Validate error message is informative
+			assert ("error_message_not_empty", l_bridge.last_error_message.count > 0)
 		end
 
 end
