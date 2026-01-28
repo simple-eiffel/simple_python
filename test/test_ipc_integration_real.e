@@ -6,6 +6,9 @@ note
 
 class TEST_IPC_INTEGRATION_REAL
 
+inherit
+	TEST_SET_BASE
+
 feature -- Tests
 
 	test_ipc_bridge_sends_to_python_server
