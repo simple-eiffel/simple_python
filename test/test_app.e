@@ -15,35 +15,49 @@ feature {NONE} -- Initialization
 			-- Run all tests. Integration tests manage their own server setup/teardown.
 		do
 			create output.make_empty
+			create logger.make_to_file ("logs/simple_python.log")
 
+			logger.log_info ("=== TEST_APP: simple_python Test Suite START ===")
 			output.append ("=== simple_python Test Suite ===%N%N")
 
+			logger.log_info ("Running SIMPLE_PYTHON tests...")
 			output.append ("--- SIMPLE_PYTHON tests ---%N")
 			run_simple_python_tests
 
+			logger.log_info ("Running PYTHON_MESSAGE tests...")
 			output.append ("%N--- PYTHON_MESSAGE tests ---%N")
 			run_python_message_tests
 
+			logger.log_info ("Running HTTP_PYTHON_BRIDGE tests...")
 			output.append ("%N--- HTTP_PYTHON_BRIDGE tests ---%N")
 			run_http_python_bridge_tests
 
+			logger.log_info ("Running HTTP Integration (Real Server) tests...")
 			output.append ("%N--- HTTP Integration (Real Server) ---%N")
 			run_http_integration_tests
 
+			logger.log_info ("Running IPC_PYTHON_BRIDGE tests...")
 			output.append ("%N--- IPC_PYTHON_BRIDGE tests ---%N")
 			run_ipc_python_bridge_tests
 
+			logger.log_info ("Running IPC Integration (Real Server) tests...")
 			output.append ("%N--- IPC Integration (Real Server) ---%N")
 			run_ipc_integration_tests
 
+			logger.log_info ("Running ADVERSARIAL tests...")
 			output.append ("%N--- ADVERSARIAL tests ---%N")
 			run_adversarial_tests
 
+			logger.log_info ("=== TEST_APP: ALL TESTS PASSED ===")
 			output.append ("%N=== All tests passed ===%N")
 
 			-- Write results to console
 			print (output)
 		end
+
+feature {NONE} -- Logger
+
+	logger: SIMPLE_LOGGER
 
 feature {NONE} -- Implementation
 
