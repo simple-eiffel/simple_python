@@ -42,7 +42,7 @@
 
 	<!-- Test Target (extends library with test classes) -->
 	<target name="simple_python_tests" extends="simple_python">
-		<root class="TEST_APP_MINIMAL" feature="make"/>
+		<root class="TEST_APP" feature="make"/>
 		<option warning="warning" namespace="http://www.eiffel.com/2014/"/>
 
 		<!-- Testing framework -->
