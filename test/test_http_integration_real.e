@@ -29,8 +29,8 @@ feature {NONE} -- Setup/Teardown
 			create l_proc.make
 
 			-- Start HTTP server in background
-			logger.log_info ("Starting Python HTTP server: python3 python_test_server.py")
-			l_proc.execute ({STRING_32} "start /B python3 python_test_server.py")
+			logger.log_info ("Starting Python HTTP server: python3 d:\prod\simple_python\python_test_server.py")
+			l_proc.execute ({STRING_32} "python3 d:\prod\simple_python\python_test_server.py")
 
 			-- Wait for server to initialize (Python startup can be slow)
 			logger.log_info ("Waiting 3000ms for Python server initialization...")
@@ -46,15 +46,20 @@ feature {NONE} -- Setup/Teardown
 		do
 			logger.log_info ("TEST_HTTP_INTEGRATION_REAL teardown: START")
 
-			-- Kill Python HTTP server process
+			-- Kill Python HTTP server process - use /T flag to kill child processes too
 			create l_proc.make
-			logger.log_info ("Killing Python processes: taskkill /F /IM python.exe")
-			l_proc.execute ("taskkill /F /IM python.exe 2>NUL")
+			logger.log_info ("Killing Python processes: taskkill /F /T /IM python.exe")
+			l_proc.execute ("taskkill /F /T /IM python.exe 2>NUL")
+			sleep_milliseconds (800)
+
+			-- Also try python3
+			logger.log_info ("Killing python3: taskkill /F /T /IM python3.exe")
+			l_proc.execute ("taskkill /F /T /IM python3.exe 2>NUL")
 			sleep_milliseconds (500)
 
-			-- Fallback: pkill
-			logger.verbose ("Fallback kill: pkill -9 python3")
-			l_proc.execute ("pkill -9 python3 2>NUL || exit 0")
+			-- Fallback: pkill with stronger options
+			logger.log_info ("Fallback kill: pkill -9 python")
+			l_proc.execute ("pkill -9 python || true")
 			sleep_milliseconds (500)
 
 			logger.log_info ("TEST_HTTP_INTEGRATION_REAL teardown: END")

@@ -20,7 +20,7 @@ feature {NONE} -- Setup/Teardown
 			create l_proc.make
 
 			-- Start IPC server in background
-			l_proc.execute ({STRING_32} "start /B python3 python_ipc_server.py")
+			l_proc.execute ({STRING_32} "python3 d:\prod\simple_python\python_ipc_server.py")
 
 			-- Wait for server to initialize
 			sleep_milliseconds (1000)

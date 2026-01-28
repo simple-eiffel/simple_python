@@ -73,6 +73,14 @@ feature -- Access
 			bounded: Result <= 10000  -- Reasonable upper bound
 		end
 
+feature {NONE} -- Logger
+
+	logger: SIMPLE_LOGGER
+			-- Shared logger for HTTP operations.
+		once
+			create Result.make_to_file ("logs/simple_python.log")
+		end
+
 feature -- Status (From PYTHON_BRIDGE)
 
 	is_initialized: BOOLEAN
@@ -136,12 +144,16 @@ feature -- Message Operations (From PYTHON_BRIDGE)
 			l_error_msg: STRING_32
 			l_timeout_secs: INTEGER
 		do
+			logger.log_info ("HTTP_BRIDGE.send_message START: message_id=" + a_message.message_id)
+
 			-- Freeze message to make it SCOOP-safe
 			a_message.freeze
+			logger.verbose ("Message frozen for SCOOP")
 
 			-- Get JSON representation
 			l_json_obj := a_message.to_json
 			l_json_string := l_json_obj.as_json
+			logger.verbose ("JSON serialized, size=" + l_json_string.count.out)
 
 			-- Track bytes sent
 			bytes_sent := bytes_sent + l_json_string.count.to_integer_64
@@ -153,49 +165,62 @@ feature -- Message Operations (From PYTHON_BRIDGE)
 			l_url.append_string (":")
 			l_url.append (port.out)
 			l_url.append_string ("/validate")
+			logger.verbose ("URL constructed: " + l_url)
 
 			-- Create HTTP client and POST JSON data
 			create l_http.make
 			l_timeout_secs := timeout_ms // 1000  -- Convert milliseconds to seconds using integer division
 			l_http.set_timeout (l_timeout_secs)
+			logger.verbose ("HTTP client created, timeout=" + l_timeout_secs.out + " secs")
 
 			-- POST JSON data to Python server
+			logger.log_info ("HTTP POST to " + l_url)
 			l_response := l_http.post (l_url, l_json_string)
+			logger.log_info ("HTTP response status=" + l_response.status.out)
 
 			-- Check for successful HTTP response
 			if l_response.status = 200 and then attached l_response.body as l_body then
+				logger.log_info ("HTTP 200 OK received, body_size=" + l_body.count.out)
+
 				-- Convert response body from STRING_8 to STRING_32 for JSON parsing
 				create l_response_body_32.make (l_body.count)
 				across l_body as c loop
 					l_response_body_32.append_character (c.item.to_character_32)
 				end
+				logger.verbose ("Response body: " + l_response_body_32.substring (1, (l_response_body_32.count.min (200))))
 
 				-- Extract and parse response JSON
+				logger.log_info ("Extracting response from body")
 				if extract_response_from_body (l_response_body_32) then
 					has_error := False
 					create last_error_message.make_empty
 					Result := True
+					logger.log_info ("HTTP_BRIDGE.send_message SUCCESS: extracted response")
 				else
 					has_error := True
 					create last_error_message.make_from_string ({STRING_32} "Failed to parse response from Python server")
 					Result := False
+					logger.log_error ("HTTP_BRIDGE.send_message FAILED: extract_response_from_body returned False")
 				end
 			else
 				-- HTTP POST failed
 				has_error := True
+				logger.log_error ("HTTP response not 200 or no body")
 				if l_response.status /= 200 then
 					create l_error_msg.make_from_string ({STRING_32} "HTTP ")
 					l_error_msg.append_string (l_response.status.out)
 					l_error_msg.append ({STRING_32} " from ")
 					l_error_msg.append_string (l_url)
 					create last_error_message.make_from_string (l_error_msg)
+					logger.log_error ("HTTP status error: " + l_error_msg)
 				else
 					create last_error_message.make_from_string ({STRING_32} "No response body from Python server")
+					logger.log_error ("No response body from Python server")
 				end
 				Result := False
 			end
 		ensure then
-			success_implies_bytes_sent: Result implies (bytes_sent >= old bytes_sent)
+			success_implies_bytes_sent: Result implies (bytes_sent > old bytes_sent)
 			failure_implies_error: (not Result) implies has_error
 			error_message_consistent: has_error implies (last_error_message.count > 0)
 		end
@@ -246,36 +271,60 @@ feature {NONE} -- Implementation Details
 			l_message_type: STRING_32
 			l_type_lower: STRING_32
 		do
+			logger.log_info ("extract_response_from_body: parsing JSON")
+			logger.log_info ("Body content (first 300 chars): " + a_body.substring (1, (a_body.count.min (300))))
+
 			-- Parse JSON response directly
 			create l_parser
 			if attached l_parser.parse (a_body) as l_parsed then
+				logger.log_info ("JSON parse succeeded")
+				logger.log_info ("Parsed JSON type - is_object: " + l_parsed.is_object.out + ", is_array: " + l_parsed.is_array.out + ", is_string: " + l_parsed.is_string.out + ", is_number: " + l_parsed.is_number.out + ", is_null: " + l_parsed.is_null.out)
 				-- Check if it's an object
 				if l_parsed.is_object and then attached {SIMPLE_JSON_OBJECT} l_parsed as l_obj then
+					logger.verbose ("Parsed JSON is object")
 					-- Get message type
 					if attached l_obj.item ("type") as l_type_val then
 						l_message_type := l_type_val.as_string_32
+						logger.verbose ("Found type field: " + l_message_type)
 
 						-- Get message ID
 						if attached l_obj.item ("message_id") as l_id_val then
 							l_message_id := l_id_val.as_string_32
+							logger.verbose ("Found message_id field: " + l_message_id)
 
 							-- Create message based on type (case-insensitive comparison)
 							l_type_lower := l_message_type.as_lower
 							if l_type_lower ~ "validation_response" then
+								logger.log_info ("Creating VALIDATION_RESPONSE for id=" + l_message_id)
 								create_validation_response (l_message_id, l_obj)
 								Result := True
 								messages_received := messages_received + 1
 								bytes_received := bytes_received + a_body.count.to_integer_64
+								logger.log_info ("VALIDATION_RESPONSE created successfully")
 							elseif l_type_lower ~ "error" then
+								logger.log_info ("Creating ERROR message for id=" + l_message_id)
 								create_error_message (l_message_id, l_obj)
 								Result := True
 								messages_received := messages_received + 1
 								bytes_received := bytes_received + a_body.count.to_integer_64
+								logger.log_info ("ERROR message created successfully")
+							else
+								logger.log_error ("Unknown message type: " + l_message_type)
 							end
+						else
+							logger.log_error ("No message_id field in JSON response")
 						end
+					else
+						logger.log_error ("No type field in JSON response")
 					end
+				else
+					logger.log_error ("Parsed JSON is not an object: is_array=" + l_parsed.is_array.out + ", is_string=" + l_parsed.is_string.out + ", is_number=" + l_parsed.is_number.out + ", is_null=" + l_parsed.is_null.out)
 				end
+			else
+				logger.log_error ("JSON parse returned Void - parsing failed")
 			end
+
+			logger.log_info ("extract_response_from_body: returning " + Result.out)
 		end
 
 	create_validation_response (a_message_id: STRING_32; a_json: SIMPLE_JSON_OBJECT)

@@ -36,6 +36,7 @@ class SimpleHTTPHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         """Handle POST requests."""
         print("[DEBUG] do_POST called from NEW server version", file=sys.stderr)
+        print(f"[DEBUG] Request path: '{self.path}' (type: {type(self.path)})", file=sys.stderr)
         sys.stderr.flush()
         content_length = int(self.headers.get('Content-Length', 0))
         body = self.rfile.read(content_length).decode('utf-8')
@@ -44,6 +45,8 @@ class SimpleHTTPHandler(BaseHTTPRequestHandler):
 
         if self.path == '/validate':
             # Parse request and send back PYTHON_MESSAGE format (type, message_id, attributes)
+            print("[DEBUG] ENTERING /validate endpoint handler - SHOULD SEND VALIDATION_RESPONSE", file=sys.stderr)
+            sys.stderr.flush()
             self.log_message("Processing /validate endpoint")
             try:
                 data = json.loads(body) if body else {}
