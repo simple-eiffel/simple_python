@@ -9,12 +9,14 @@ class TEST_HTTP_INTEGRATION_REAL
 feature -- Tests
 
 	test_http_bridge_sends_to_python_server
-			-- Send a message to the running Python test server via HTTP.
+		note
+			testing: "execution/isolated"
 		local
 			l_bridge: HTTP_PYTHON_BRIDGE
 			l_message: PYTHON_VALIDATION_REQUEST
 			l_result: BOOLEAN
 		do
+			-- Send a message to the running Python test server via HTTP.
 			-- Create bridge pointing to Python server on localhost:8888
 			create l_bridge.make_with_host_port ({STRING_32} "127.0.0.1", 8888)
 
@@ -29,12 +31,14 @@ feature -- Tests
 		end
 
 	test_http_bridge_handles_errors
-			-- Test error handling when Python server is unreachable.
+		note
+			testing: "execution/isolated"
 		local
 			l_bridge: HTTP_PYTHON_BRIDGE
 			l_message: PYTHON_VALIDATION_REQUEST
 			l_result: BOOLEAN
 		do
+			-- Test error handling when Python server is unreachable.
 			-- Create bridge pointing to invalid server (port 9999 should be empty)
 			create l_bridge.make_with_host_port ({STRING_32} "127.0.0.1", 9999)
 

@@ -9,12 +9,14 @@ class TEST_IPC_INTEGRATION_REAL
 feature -- Tests
 
 	test_ipc_bridge_sends_to_python_server
-			-- Send a message to the running Python IPC server via named pipe.
+		note
+			testing: "execution/isolated"
 		local
 			l_bridge: IPC_PYTHON_BRIDGE
 			l_message: PYTHON_VALIDATION_REQUEST
 			l_result: BOOLEAN
 		do
+			-- Send a message to the running Python IPC server via named pipe.
 			-- Create bridge pointing to Python IPC server pipe
 			create l_bridge.make_with_pipe_name ({STRING_32} "\\.\pipe\simple_python_ipc")
 
@@ -29,12 +31,14 @@ feature -- Tests
 		end
 
 	test_ipc_bridge_handles_errors
-			-- Test error handling when Python IPC server is unreachable.
+		note
+			testing: "execution/isolated"
 		local
 			l_bridge: IPC_PYTHON_BRIDGE
 			l_message: PYTHON_VALIDATION_REQUEST
 			l_result: BOOLEAN
 		do
+			-- Test error handling when Python IPC server is unreachable.
 			-- Create bridge pointing to non-existent pipe
 			create l_bridge.make_with_pipe_name ({STRING_32} "\\.\pipe\nonexistent_ipc")
 
