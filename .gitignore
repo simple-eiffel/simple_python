@@ -36,3 +36,4 @@ build/
 test_results/
 coverage/
 reports/
+*.epr
