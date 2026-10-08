@@ -44,10 +44,9 @@ feature {NONE} -- Initialization
 			output.append ("%N--- IPC Integration (Real Server) ---%N")
 			run_ipc_integration_tests
 
-			-- gRPC Integration tests temporarily disabled - debugging needed
-			-- logger.log_info ("Running gRPC Integration (Real Server) tests...")
-			-- output.append ("%N--- gRPC Integration (Real Server) ---%N")
-			-- run_grpc_integration_tests
+			logger.log_info ("Running gRPC Integration (Real Server) tests...")
+			output.append ("%N--- gRPC Integration (Real Server) ---%N")
+			run_grpc_integration_tests
 
 			logger.log_info ("Running ADVERSARIAL tests...")
 			output.append ("%N--- ADVERSARIAL tests ---%N")
@@ -235,6 +234,10 @@ feature {NONE} -- IPC Integration Tests
 			output.append ("  test_ipc_bridge_handles_errors: ")
 			run_with_server (agent l_tests.setup, agent l_tests.test_ipc_bridge_handles_errors, agent l_tests.teardown)
 			output.append ("OK%N")
+
+			output.append ("  test_ipc_bridge_send_after_server_stops: ")
+			run_with_server (agent l_tests.setup, agent l_tests.test_ipc_bridge_send_after_server_stops, agent l_tests.teardown)
+			output.append ("OK%N")
 		end
 
 feature {NONE} -- gRPC Integration Tests
@@ -251,6 +254,10 @@ feature {NONE} -- gRPC Integration Tests
 
 			output.append ("  test_grpc_bridge_handles_errors: ")
 			run_with_server (agent l_tests.setup, agent l_tests.test_grpc_bridge_handles_errors, agent l_tests.teardown)
+			output.append ("OK%N")
+
+			output.append ("  test_grpc_bridge_reconnects_after_close: ")
+			run_with_server (agent l_tests.setup, agent l_tests.test_grpc_bridge_reconnects_after_close, agent l_tests.teardown)
 			output.append ("OK%N")
 		end
 
@@ -302,8 +309,8 @@ feature {NONE} -- ADVERSARIAL Tests
 			l_tests.test_bridge_close_idempotent
 			output.append ("OK%N")
 
-			output.append ("  test_bridge_initialize_idempotent: ")
-			l_tests.test_bridge_initialize_idempotent
+			output.append ("  test_bridge_initialize_twice_rejected: ")
+			l_tests.test_bridge_initialize_twice_rejected
 			output.append ("OK%N")
 
 			output.append ("  test_message_binary_roundtrip: ")

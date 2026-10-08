@@ -42,8 +42,8 @@ For complete documentation, see [our docs site](https://simple-eiffel.github.io/
 ## Features
 
 - HTTP bridge for REST-based validation
-- IPC bridge for TCP socket communication (port 9001)
-- gRPC bridge for bidirectional streaming (port 9002)
+- IPC bridge: loopback TCP (127.0.0.1:9001), 4-byte big-endian length + UTF-8 JSON frames, via simple_net
+- gRPC bridge: the same framing over TCP to any host (default port 9002); not HTTP/2 gRPC
 - Full Design by Contract with MML postconditions
 - SCOOP-compatible concurrent messaging
 

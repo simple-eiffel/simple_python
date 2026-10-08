@@ -40,48 +40,19 @@ test_http_bridge_handles_errors: OK ✓
 
 ---
 
-### ⏳ IPC Transport - PARTIAL (Stub + Python Server)
-**Status:** Design Phase - Python server created, Eiffel bridge requires Win32 integration
+### ✅ IPC Transport - WORKING (1.1.0)
+**Status:** Round trips verified against `python_ipc_server.py`.
 
-**What's Done:**
-- Created `python_ipc_server.py` - Windows named pipe IPC server
-- Message framing protocol defined (4-byte big-endian length prefix)
-- IPC_PYTHON_BRIDGE skeleton in place
-- Test framework ready
-
-**What's Needed:**
-- Win32 API integration in Eiffel (CreateNamedPipe, ReadFile, WriteFile)
-- Implement using inline C or EIFFELBASE Win32 bindings
-- End-to-end testing
-
-**How It Will Work:**
-```
-Eiffel Client        Python Server
-    │                      │
-    │─[Length|Message]────→│
-    │  (via named pipe)    │
-    │                      │ (processes)
-    │←─[Length|Response]───│
-    │                      │
-```
-
-**Files:**
-- `python_ipc_server.py` - Python IPC server (ready to test)
-- `src/ipc_python_bridge.e` - Bridge skeleton (needs Win32 implementation)
+The server is TCP on 127.0.0.1:9001, not a named pipe (the original plan). Frames, both directions:
+4-byte big-endian payload length, then UTF-8 JSON. `IPC_PYTHON_BRIDGE` (via `PYTHON_TCP_BRIDGE` and
+simple_net's `CLIENT_SOCKET`) connects in `initialize`, sends one frame per `send_message`, reads the
+reply frame and checks its `message_id`. `make_with_pipe_name` keeps the pipe name as a label only.
 
 ---
 
-### ⏳ gRPC Transport - DESIGN PHASE
-**Status:** Not yet implemented
-
-**Architecture Needed:**
-1. Define protobuf message format
-2. Create Python gRPC server
-3. Implement gRPC client in Eiffel
-4. Create integration tests
-
-**Reference Implementation:**
-- HTTP bridge shows the pattern: create bridge → initialize → send_message → receive_message
+### ✅ gRPC Transport - WORKING (1.1.0, length-prefixed JSON over TCP)
+**Status:** Round trips verified against `python_grpc_server.py` (127.0.0.1:9002). Same framing as
+IPC; this is not HTTP/2 or protobuf gRPC.
 
 ---
 

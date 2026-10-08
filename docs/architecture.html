@@ -148,8 +148,7 @@ Message structure:
 
 5. Bridge transmits:
    - HTTP: sends via HTTP/1.1
-   - IPC: writes to named pipe
-   - gRPC: sends via gRPC
+   - IPC/gRPC: write one length-prefixed frame to the TCP connection
 
 6. Python receives and processes
 </code></pre>
@@ -157,13 +156,12 @@ Message structure:
             <h3>Receiving a Message</h3>
             <pre><code>1. Bridge receives data:
    - HTTP: receives HTTP response
-   - IPC: reads from named pipe (4-byte length prefix)
-   - gRPC: receives via gRPC
+   - IPC/gRPC: read the reply frame (4-byte big-endian length prefix)
 
 2. Bridge decodes:
    - HTTP: JSON → PYTHON_MESSAGE
    - IPC: Extract payload from frame
-   - gRPC: Deserialize from gRPC
+   - IPC/gRPC: check the reply message_id answers the request
 
 3. Application receives:
    l_response := l_bridge.receive_message

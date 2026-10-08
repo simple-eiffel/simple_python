@@ -1,5 +1,41 @@
 # Changelog
 
+## [1.1.0] - 2026-10-08
+
+### Fixed
+
+- **The IPC and gRPC bridges now talk to their servers.** They POSTed HTTP to
+  `python_ipc_server.py` / `python_grpc_server.py`, which speak raw TCP: a 4-byte big-endian length
+  prefix, then UTF-8 JSON, both directions, one reply per request on a persistent connection. Both
+  bridges now inherit the new `PYTHON_TCP_BRIDGE`, which uses `simple_net`'s real `CLIENT_SOCKET`
+  (1.2.0): `initialize` connects, `send_message` sends one frame, reads the reply frame, and accepts
+  it only if its `message_id` answers the request. Any failure closes the connection; the next send
+  reconnects. Errors carry the Winsock code (e.g. `IPC 127.0.0.1:19998 cannot connect: ... Connection
+  refused (WSA 10061)`).
+- **Contracts are now checked in the tests.** Neither ECF target set `<assertions>`, so the suite ran
+  contract-free. Both targets now enable precondition, postcondition, check, invariant, loop and
+  supplier_precondition. That revealed:
+  - `HTTP_PYTHON_BRIDGE.send_message` left `is_connected` True after a failed POST, breaking
+    `PYTHON_BRIDGE`'s invariant `error_implies_not_connected` (reproduced: "Class invariant violated"
+    in `test_http_bridge_handles_errors`). A failed exchange now clears `is_connected`; a successful
+    one sets it. The contract was right; the code was fixed.
+  - `test_bridge_initialize_idempotent` called `initialize` twice, which the contract
+    (`not_initialized`) forbids. Replaced by `test_bridge_initialize_twice_rejected`, which checks the
+    precondition fires.
+  - `decode_frame`'s postcondition (`Result.count > 0`) was wrong for a valid zero-length frame; it now
+    states that the payload length equals the prefix. A negative prefix is rejected.
+- `send_message` no longer violates `PYTHON_MESSAGE.freeze`'s precondition when the caller has already
+  frozen the message, and no stale reply survives a failed send.
+
+### Changed
+
+- `IPC_PYTHON_BRIDGE` is TCP on loopback (default 127.0.0.1:9001). It was first sketched for Windows
+  named pipes; the server that exists is TCP, so `make_with_pipe_name` keeps the name as a label only.
+  New creation `make_with_port`.
+- The IPC and gRPC integration tests assert a real round trip (reply id and type, `result` = PASS),
+  connection reuse, refusal, reconnect after close, and a send after the server is killed (error, not
+  connected). The gRPC tests are enabled again. 38 tests pass.
+
 ## [1.0.2] - 2026-10-08
 
 ### Fixed
@@ -19,10 +55,7 @@
 
 ### Known issues
 
-- The IPC and gRPC bridges send HTTP to `python_ipc_server.py` / `python_grpc_server.py`, which speak
-  raw TCP with a 4-byte length prefix, so they never get an answer (the send times out). Their
-  integration tests assert nothing, so they pass regardless. A real TCP transport needs a working
-  client socket: `simple_net`'s `CLIENT_SOCKET` (`src/client_socket.e`) is still a stub.
+- (Fixed in 1.1.0) The IPC and gRPC bridges sent HTTP to raw-TCP servers.
 
 ## [1.0.1] - 2026-10-08
 

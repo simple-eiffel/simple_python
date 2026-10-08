@@ -4,9 +4,9 @@
 		Eiffel-Python bridge for ultra-low-latency validation communication.
 
 		Supports three transport protocols:
-		- HTTP: JSON over HTTP/1.1 (Phase 1)
-		- IPC: Windows named pipes (Phase 1)
-		- gRPC: High-performance RPC (Phase 2)
+		- HTTP: JSON over HTTP/1.1 (simple_winhttp)
+		- IPC: length-prefixed JSON frames over loopback TCP (simple_net)
+		- gRPC: length-prefixed JSON frames over TCP (simple_net); not HTTP/2 gRPC
 
 		All bridges implement unified PYTHON_BRIDGE interface for pluggable transports.
 	</description>
@@ -14,7 +14,9 @@
 	<!-- Library Target (for reuse in other projects) -->
 	<target name="simple_python">
 		<root all_classes="true"/>
-		<option warning="warning" namespace="http://www.eiffel.com/2014/"/>
+		<option warning="warning" namespace="http://www.eiffel.com/2014/">
+			<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
+		</option>
 
 		<capability>
 			<concurrency support="scoop"/>
@@ -28,12 +30,13 @@
 		<!-- simple_* ecosystem - preferred over ISE/Gobo -->
 		<library name="simple_json" location="$SIMPLE_EIFFEL\simple_json\simple_json.ecf"/>
 		<library name="simple_winhttp" location="$SIMPLE_EIFFEL\simple_winhttp\simple_winhttp.ecf"/>
+		<library name="simple_net" location="$SIMPLE_EIFFEL\simple_net\simple_net.ecf"/>
 		<library name="simple_mml" location="$SIMPLE_EIFFEL\simple_mml\simple_mml.ecf"/>
 		<library name="simple_logger" location="$SIMPLE_EIFFEL\simple_logger\simple_logger.ecf"/>
 		<library name="simple_testing" location="$SIMPLE_EIFFEL\simple_testing\simple_testing.ecf"/>
 		<library name="simple_process" location="$SIMPLE_EIFFEL\simple_process\simple_process.ecf"/>
 
-		<!-- Phase 1: HTTP and IPC -->
+		<!-- Bridges: HTTP, IPC, gRPC -->
 		<cluster name="src" location="src\"/>
 
 		<!-- Phase 2 (Future): gRPC support via simple_grpc (when available) -->
@@ -43,7 +46,10 @@
 	<!-- Test Target (extends library with test classes) -->
 	<target name="simple_python_tests" extends="simple_python">
 		<root class="TEST_APP" feature="make"/>
-		<option warning="warning" namespace="http://www.eiffel.com/2014/"/>
+		<!-- An extending target must repeat the assertions, or its clusters run contract-free -->
+		<option warning="warning" namespace="http://www.eiffel.com/2014/">
+			<assertions precondition="true" postcondition="true" check="true" invariant="true" loop="true" supplier_precondition="true"/>
+		</option>
 
 		<!-- Testing framework -->
 		<library name="testing" location="$ISE_LIBRARY\library\testing\testing.ecf"/>

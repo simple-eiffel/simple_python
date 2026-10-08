@@ -145,9 +145,11 @@ feature -- Message Operations (From PYTHON_BRIDGE)
 		do
 			logger.log_info ("HTTP_BRIDGE.send_message START: message_id=" + a_message.message_id)
 
-			-- Freeze message to make it SCOOP-safe
-			a_message.freeze
-			logger.verbose ("Message frozen for SCOOP")
+			-- Freeze message to make it SCOOP-safe (a caller may already have frozen it)
+			if not a_message.is_frozen then
+				a_message.freeze
+			end
+			cached_response := Void  -- no stale reply survives a failed send
 
 			-- Get JSON representation
 			l_json_obj := a_message.to_json
@@ -185,18 +187,21 @@ feature -- Message Operations (From PYTHON_BRIDGE)
 				logger.log_info ("Extracting response from body")
 				if extract_response_from_body (l_response_body_32) then
 					has_error := False
+					is_connected := True  -- the server answered
 					create last_error_message.make_empty
 					Result := True
 					logger.log_info ("HTTP_BRIDGE.send_message SUCCESS: extracted response")
 				else
 					has_error := True
+					is_connected := False  -- error_implies_not_connected
 					create last_error_message.make_from_string ({STRING_32} "Failed to parse response from Python server")
 					Result := False
 					logger.log_error ("HTTP_BRIDGE.send_message FAILED: extract_response_from_body returned False")
 				end
 			else
-				-- HTTP POST failed
+				-- HTTP POST failed: the server is not reachable as far as we know
 				has_error := True
+				is_connected := False  -- error_implies_not_connected
 				logger.log_error ("HTTP response not 200")
 				if l_exchange.is_exchanged then
 					create l_error_msg.make_from_string ({STRING_32} "HTTP ")
@@ -217,6 +222,7 @@ feature -- Message Operations (From PYTHON_BRIDGE)
 			success_implies_bytes_sent: Result implies (bytes_sent > old bytes_sent)
 			failure_implies_error: (not Result) implies has_error
 			error_message_consistent: has_error implies (last_error_message.count > 0)
+			failure_disconnects: (not Result) implies not is_connected
 		end
 
 	receive_message: detachable PYTHON_MESSAGE

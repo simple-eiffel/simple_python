@@ -77,7 +77,7 @@ end</code></pre>
 
         <section>
             <h2>Recipe 2: Ultra-Low-Latency IPC Validation</h2>
-            <p>High-performance same-machine communication using Windows named pipes.</p>
+            <p>Same-machine communication over loopback TCP (127.0.0.1:9001) with length-prefixed JSON frames.</p>
             <pre><code>class IPC_VALIDATION_EXAMPLE
 create
     make

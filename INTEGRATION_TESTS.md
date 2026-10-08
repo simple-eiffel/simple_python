@@ -13,7 +13,7 @@ This document explains how to run simple_python integration tests with actual Py
 The integration test suite (`test_integration.e`) validates that the Eiffel library can actually communicate with Python servers using all three protocols:
 
 1. **HTTP** - JSON over HTTP/1.1
-2. **IPC** - Windows named pipes (same-machine)
+2. **IPC** - length-prefixed JSON over loopback TCP, 127.0.0.1:9001 (same-machine; was planned as named pipes)
 3. **gRPC** - (Phase 2 placeholder)
 
 ## Running Integration Tests
@@ -150,6 +150,9 @@ Same as request with:
 - Response `attributes` from Python
 
 ### IPC Protocol
+
+> 1.1.0: the IPC server and bridge use TCP 127.0.0.1:9001 with a 4-byte big-endian length
+> prefix + UTF-8 JSON, not a named pipe. The named-pipe notes below are the original plan.
 
 **Named Pipe:** `\\.\pipe\eiffel_python_ipc`
 

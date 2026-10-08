@@ -70,6 +70,7 @@ feature -- Edge Case Tests
 			l_frame := l_bridge.encode_frame (l_payload)
 			assert ("frame created for empty payload", l_frame /= Void)
 			assert ("frame size is 4 (length prefix only)", l_frame.count = 4)
+			assert ("decodes to empty payload", attached l_bridge.decode_frame (l_frame) as al_p and then al_p.is_empty)
 		end
 
 	test_frame_with_large_payload
@@ -177,20 +178,18 @@ feature -- Edge Case Tests
 			assert ("still not connected after second close", not l_bridge.is_connected)
 		end
 
-	test_bridge_initialize_idempotent
-			-- Test that calling initialize multiple times is safe.
+	test_bridge_initialize_twice_rejected
+			-- initialize requires `not is_initialized': a second call is a contract
+			-- violation, not a no-op. (HTTP bridge: its initialize needs no server.)
 		local
-			l_bridge: IPC_PYTHON_BRIDGE
+			l_bridge: HTTP_PYTHON_BRIDGE
 			l_result1: BOOLEAN
-			l_result2: BOOLEAN
 		do
-			create l_bridge.make_with_pipe_name ("\\.\\pipe\\test")
+			create l_bridge.make_with_host_port ("localhost", 8080)
 			l_result1 := l_bridge.initialize
 			assert ("first initialize succeeds", l_result1)
 			assert ("is initialized", l_bridge.is_initialized)
-			-- Calling initialize again should be safe
-			l_result2 := l_bridge.initialize
-			assert ("second initialize also succeeds", l_result2)
+			assert ("second initialize rejected", raises_precondition (agent initialize_bridge (l_bridge)))
 			assert ("still initialized", l_bridge.is_initialized)
 		end
 
@@ -210,6 +209,31 @@ feature -- Edge Case Tests
 			-- Serialize again should produce same result (deterministic)
 			l_binary2 := l_msg.to_binary
 			assert ("binary deterministic", l_binary1.count = l_binary2.count)
+		end
+
+
+feature {NONE} -- Helpers
+
+	initialize_bridge (a_bridge: PYTHON_BRIDGE)
+			-- Call initialize.
+		do
+			a_bridge.initialize.do_nothing
+		end
+
+	raises_precondition (a_action: PROCEDURE): BOOLEAN
+			-- Does running `a_action' raise a precondition violation?
+		local
+			l_retried: BOOLEAN
+		do
+			if not l_retried then
+				a_action.call (Void)
+			end
+		rescue
+			l_retried := True
+			if attached (create {EXCEPTION_MANAGER}).last_exception as al_e then
+				Result := attached {PRECONDITION_VIOLATION} al_e.original
+			end
+			retry
 		end
 
 end
