@@ -27,7 +27,7 @@
 
 		<!-- simple_* ecosystem - preferred over ISE/Gobo -->
 		<library name="simple_json" location="$SIMPLE_EIFFEL\simple_json\simple_json.ecf"/>
-		<library name="simple_http" location="$SIMPLE_EIFFEL\simple_http\simple_http.ecf"/>
+		<library name="simple_winhttp" location="$SIMPLE_EIFFEL\simple_winhttp\simple_winhttp.ecf"/>
 		<library name="simple_mml" location="$SIMPLE_EIFFEL\simple_mml\simple_mml.ecf"/>
 		<library name="simple_logger" location="$SIMPLE_EIFFEL\simple_logger\simple_logger.ecf"/>
 		<library name="simple_testing" location="$SIMPLE_EIFFEL\simple_testing\simple_testing.ecf"/>

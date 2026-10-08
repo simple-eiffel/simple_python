@@ -137,9 +137,8 @@ feature -- Message Operations (From PYTHON_BRIDGE)
 		local
 			l_json_obj: SIMPLE_JSON_OBJECT
 			l_json_string: STRING_8
-			l_http: SIMPLE_HTTP
+			l_exchange: PYTHON_JSON_EXCHANGE
 			l_url: STRING_8
-			l_response: SIMPLE_HTTP_RESPONSE
 			l_response_body_32: STRING_32
 			l_error_msg: STRING_32
 			l_timeout_secs: INTEGER
@@ -167,26 +166,19 @@ feature -- Message Operations (From PYTHON_BRIDGE)
 			l_url.append_string ("/validate")
 			logger.verbose ("URL constructed: " + l_url)
 
-			-- Create HTTP client and POST JSON data
-			create l_http.make
-			l_timeout_secs := timeout_ms // 1000  -- Convert milliseconds to seconds using integer division
-			l_http.set_timeout (l_timeout_secs)
-			logger.verbose ("HTTP client created, timeout=" + l_timeout_secs.out + " secs")
-
-			-- POST JSON data to Python server
-			logger.log_info ("HTTP POST to " + l_url)
-			l_response := l_http.post (l_url, l_json_string)
-			logger.log_info ("HTTP response status=" + l_response.status.out)
+			-- POST the JSON to the Python server as application/json
+			create l_exchange.make
+			l_timeout_secs := ((timeout_ms + 999) // 1000).max (1)  -- Whole seconds, rounded up
+			logger.log_info ("HTTP POST to " + l_url + ", timeout=" + l_timeout_secs.out + " secs")
+			if l_exchange.is_usable_url (l_url) then
+				l_exchange.post (l_url, l_json_string, l_timeout_secs)
+			end
+			logger.log_info ("HTTP response status=" + l_exchange.status.out)
 
 			-- Check for successful HTTP response
-			if l_response.status = 200 and then attached l_response.body as l_body then
-				logger.log_info ("HTTP 200 OK received, body_size=" + l_body.count.out)
-
-				-- Convert response body from STRING_8 to STRING_32 for JSON parsing
-				create l_response_body_32.make (l_body.count)
-				across l_body as c loop
-					l_response_body_32.append_character (c.item.to_character_32)
-				end
+			if l_exchange.status = 200 then
+				l_response_body_32 := l_exchange.body
+				logger.log_info ("HTTP 200 OK received, body_size=" + l_response_body_32.count.out)
 				logger.verbose ("Response body: " + l_response_body_32.substring (1, (l_response_body_32.count.min (200))))
 
 				-- Extract and parse response JSON
@@ -205,18 +197,20 @@ feature -- Message Operations (From PYTHON_BRIDGE)
 			else
 				-- HTTP POST failed
 				has_error := True
-				logger.log_error ("HTTP response not 200 or no body")
-				if l_response.status /= 200 then
+				logger.log_error ("HTTP response not 200")
+				if l_exchange.is_exchanged then
 					create l_error_msg.make_from_string ({STRING_32} "HTTP ")
-					l_error_msg.append_string (l_response.status.out)
+					l_error_msg.append_string (l_exchange.status.out)
 					l_error_msg.append ({STRING_32} " from ")
 					l_error_msg.append_string (l_url)
-					create last_error_message.make_from_string (l_error_msg)
-					logger.log_error ("HTTP status error: " + l_error_msg)
+				elseif l_exchange.error.is_empty then
+					create l_error_msg.make_from_string ({STRING_32} "Not a usable HTTP URL: ")
+					l_error_msg.append_string (l_url)
 				else
-					create last_error_message.make_from_string ({STRING_32} "No response body from Python server")
-					logger.log_error ("No response body from Python server")
+					create l_error_msg.make_from_string (l_exchange.error)
 				end
+				create last_error_message.make_from_string (l_error_msg)
+				logger.log_error ("HTTP error: " + l_error_msg)
 				Result := False
 			end
 		ensure then

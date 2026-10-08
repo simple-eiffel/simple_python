@@ -1,5 +1,29 @@
 # Changelog
 
+## [1.0.2] - 2026-10-08
+
+### Fixed
+
+- **The bridges sent broken JSON.** `test_http_bridge_sends_to_python_server` failed because the
+  request body lost every double quote on the way out. Captured at the server:
+  `{message_id:test_msg_001,type:VALIDATION_REQUEST,timestamp:10/08/2026T10:20:47.707` with
+  `User-Agent: curl/8.21.0` and `Content-Type: application/x-www-form-urlencoded`. The bridges posted
+  through `SIMPLE_HTTP.post`, whose transport (ISE `curl_http_client`, command-line spec) builds a
+  `curl` command line with ` --data "<body>"` and does not escape the body, so the quotes in the JSON
+  were consumed by command-line parsing and the space in the timestamp (` AM`) cut the argument.
+  `post_json` takes the same path. The HTTP, IPC and gRPC bridges now post through the new
+  `PYTHON_JSON_EXCHANGE`, which sends the bytes verbatim with `Content-Type: application/json` over
+  `simple_winhttp`, and decodes the reply as UTF-8 (it was widened byte by byte). `simple_http` is no
+  longer a dependency.
+- Timeouts under one second no longer become 0 seconds (rounded up to whole seconds).
+
+### Known issues
+
+- The IPC and gRPC bridges send HTTP to `python_ipc_server.py` / `python_grpc_server.py`, which speak
+  raw TCP with a 4-byte length prefix, so they never get an answer (the send times out). Their
+  integration tests assert nothing, so they pass regardless. A real TCP transport needs a working
+  client socket: `simple_net`'s `CLIENT_SOCKET` (`src/client_socket.e`) is still a stub.
+
 ## [1.0.1] - 2026-10-08
 
 ### Fixed

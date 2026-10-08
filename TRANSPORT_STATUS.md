@@ -34,7 +34,7 @@ test_http_bridge_handles_errors: OK ✓
 ```
 
 **Files:**
-- `src/http_python_bridge.e` - HTTP bridge implementation using simple_http library
+- `src/http_python_bridge.e` - HTTP bridge implementation; posts JSON through PYTHON_JSON_EXCHANGE (simple_winhttp)
 - `python_test_server.py` - Simple Python HTTP server with /validate, /echo endpoints
 - `test/test_http_integration_real.e` - Real HTTP communication tests
 
@@ -234,7 +234,7 @@ class *_PYTHON_BRIDGE
 
 ## Proven Technologies
 
-✓ **HTTP/REST:** Eiffel + simple_http + Python Flask/http.server  
+✓ **HTTP/REST:** Eiffel + simple_winhttp + Python Flask/http.server  
 ✓ **JSON Serialization:** Eiffel PYTHON_MESSAGE → JSON string → Python  
 ✓ **Message Freezing:** SCOOP-safe message handling  
 ✓ **Error Handling:** Bridge catches connection errors gracefully  
