@@ -12,44 +12,34 @@ inherit
 feature -- Setup/Teardown
 
 	setup
-			-- Start Python IPC server before each test.
+			-- Start this test's Python server through its launcher (start_ipc_server_blocking.py, port 9001).
 		local
-			l_proc: SIMPLE_PROCESS
+			l_server: PYTHON_TEST_SERVER
 		do
-			create ipc_process.make
-			create l_proc.make
-
-			-- Start IPC server using blocking launcher (waits for port 9001 listening)
-			l_proc.execute ({STRING_32} "python3 ./start_ipc_server_blocking.py 9001")
+			create l_server.make ("start_ipc_server_blocking.py", 9001)
+			l_server.start
+			server := l_server
 		end
 
 	teardown
-			-- Stop Python IPC server after each test.
-		local
-			l_proc: SIMPLE_PROCESS
+			-- Stop the server `setup' started, and only that one.
 		do
-			-- Kill Python IPC server process
-			create l_proc.make
-			l_proc.execute ("taskkill /F /IM python.exe 2>NUL")
-			sleep_milliseconds (500)
-
-			-- Fallback: pkill
-			l_proc.execute ("pkill -9 python3 2>NUL || exit 0")
-			sleep_milliseconds (500)
+			if attached server as al_server then
+				al_server.stop
+			end
 		end
 
 feature {NONE} -- Process Management
 
-	ipc_process: detachable SIMPLE_PROCESS
-			-- IPC server process handle.
+	server: detachable PYTHON_TEST_SERVER
+			-- Server started by `setup'.
 
 	sleep_milliseconds (a_ms: INTEGER)
-			-- Sleep for specified milliseconds.
-		local
-			l_proc: SIMPLE_PROCESS
+			-- Sleep for `a_ms' milliseconds.
+		require
+			non_negative: a_ms >= 0
 		do
-			create l_proc.make
-			l_proc.execute ("timeout /t " + (a_ms // 1000).out + " /nobreak")
+			(create {EXECUTION_ENVIRONMENT}).sleep (a_ms.to_integer_64 * 1_000_000)
 		end
 
 feature -- Tests

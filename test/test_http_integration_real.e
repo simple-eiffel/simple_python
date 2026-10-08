@@ -19,61 +19,34 @@ feature {NONE} -- Logger
 feature -- Setup/Teardown
 
 	setup
-			-- Setup for HTTP integration tests.
-			-- Automatically starts Python HTTP server on port 8889 using VBScript launcher.
+			-- Start this test's Python server through its launcher (start_http_server_blocking.py, port 8889).
 		local
-			l_proc: SIMPLE_PROCESS
+			l_server: PYTHON_TEST_SERVER
 		do
-			logger.log_info ("TEST_HTTP_INTEGRATION_REAL setup: START")
-
-			create http_process.make
-			create l_proc.make
-
-			-- Start HTTP server using blocking launcher (waits for port to be listening)
-			logger.log_info ("Starting Python HTTP server on port 8889 using blocking launcher...")
-			l_proc.execute ({STRING_32} "python3 ./start_http_server_blocking.py 8889")
-
-			logger.log_info ("TEST_HTTP_INTEGRATION_REAL setup: END")
+			create l_server.make ("start_http_server_blocking.py", 8889)
+			l_server.start
+			server := l_server
 		end
 
 	teardown
-			-- Stop Python HTTP server after each test.
-		local
-			l_proc: SIMPLE_PROCESS
+			-- Stop the server `setup' started, and only that one.
 		do
-			logger.log_info ("TEST_HTTP_INTEGRATION_REAL teardown: START")
-
-			-- Kill Python HTTP server process - use /T flag to kill child processes too
-			create l_proc.make
-			logger.log_info ("Killing Python processes: taskkill /F /T /IM python.exe")
-			l_proc.execute ("taskkill /F /T /IM python.exe 2>NUL")
-			sleep_milliseconds (800)
-
-			-- Also try python3
-			logger.log_info ("Killing python3: taskkill /F /T /IM python3.exe")
-			l_proc.execute ("taskkill /F /T /IM python3.exe 2>NUL")
-			sleep_milliseconds (500)
-
-			-- Fallback: pkill with stronger options
-			logger.log_info ("Fallback kill: pkill -9 python")
-			l_proc.execute ("pkill -9 python || true")
-			sleep_milliseconds (500)
-
-			logger.log_info ("TEST_HTTP_INTEGRATION_REAL teardown: END")
+			if attached server as al_server then
+				al_server.stop
+			end
 		end
 
 feature {NONE} -- Process Management
 
-	http_process: detachable SIMPLE_PROCESS
-			-- HTTP server process handle.
+	server: detachable PYTHON_TEST_SERVER
+			-- Server started by `setup'.
 
 	sleep_milliseconds (a_ms: INTEGER)
-			-- Sleep for specified milliseconds.
-		local
-			l_proc: SIMPLE_PROCESS
+			-- Sleep for `a_ms' milliseconds.
+		require
+			non_negative: a_ms >= 0
 		do
-			create l_proc.make
-			l_proc.execute ("timeout /t " + (a_ms // 1000).out + " /nobreak")
+			(create {EXECUTION_ENVIRONMENT}).sleep (a_ms.to_integer_64 * 1_000_000)
 		end
 
 feature -- Tests

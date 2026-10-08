@@ -34,6 +34,12 @@ def main():
     print(f"[LAUNCHER] Script exists: {os.path.exists(server_script)}", file=sys.stderr)
     sys.stderr.flush()
 
+    # Refuse a busy port: another server there would answer in place of ours,
+    # and its process is not ours to report or stop.
+    if is_port_listening(port):
+        print(f"[LAUNCHER] PORT BUSY: something is already listening on port {port}", file=sys.stderr)
+        sys.exit(1)
+
     # Start the server process with proper detachment
     try:
         # Windows-specific: use CREATE_NEW_PROCESS_GROUP to detach
@@ -55,10 +61,13 @@ def main():
         sys.stderr.flush()
 
         for attempt in range(30):  # Try for up to 15 seconds
+            if process.poll() is not None:
+                print(f"[LAUNCHER] Server exited early with code {process.returncode}", file=sys.stderr)
+                sys.exit(1)
             if is_port_listening(port):
                 print(f"[LAUNCHER] Server is listening! (attempt {attempt+1})", file=sys.stderr)
                 sys.stderr.flush()
-                print("READY")  # Signal to caller that server is ready
+                print(f"READY {process.pid}")  # Caller stops exactly this process
                 sys.exit(0)
 
             if attempt % 5 == 0:
@@ -69,6 +78,7 @@ def main():
 
         print(f"[LAUNCHER] TIMEOUT: Server did not start listening within 15 seconds", file=sys.stderr)
         sys.stderr.flush()
+        process.kill()  # do not leave our own server behind
         sys.exit(1)
 
     except Exception as e:

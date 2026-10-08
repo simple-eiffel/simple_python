@@ -1,5 +1,27 @@
 # Changelog
 
+## [1.0.1] - 2026-10-08
+
+### Fixed
+
+- **Test teardown no longer kills every Python process on the machine.** The HTTP, IPC and gRPC
+  integration teardowns ran `taskkill /F /IM python.exe` (plus `pkill`), which ended any Python
+  program the user had running. The launchers now print `READY <pid>`, and the new test helper
+  `PYTHON_TEST_SERVER` stops only that process tree (`taskkill /F /T /PID <pid>`).
+- **A failing integration test no longer leaves its server running.** `TEST_APP.run_with_server`
+  runs teardown in a `rescue` as well, then lets the failure propagate.
+- **Launchers refuse a busy port.** Before, a second launch saw the first server listening and
+  reported READY, so the test talked to a stale server. They also stop their own server on timeout
+  and report a server that exits early.
+- **Test sleeps sleep.** `sleep_milliseconds` ran `timeout /t`, which refuses redirected input and
+  rounded anything under a second down to 0; it now uses `EXECUTION_ENVIRONMENT.sleep`.
+
+### Known issue
+
+- `test_http_bridge_sends_to_python_server` fails: the Python server rejects the request body as
+  invalid JSON ("Expecting property name enclosed in double quotes: line 1 column 2"). Present
+  before these changes (same failure built against simple_process main); cause not yet found.
+
 ## [1.0.0] - 2026-01-28
 
 ### Added

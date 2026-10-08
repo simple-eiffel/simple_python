@@ -160,6 +160,20 @@ feature {NONE} -- HTTP_PYTHON_BRIDGE Tests
 			output.append ("OK%N")
 		end
 
+feature {NONE} -- Server-backed tests
+
+	run_with_server (a_setup, a_test, a_teardown: PROCEDURE)
+			-- Run `a_test' between `a_setup' and `a_teardown'. `a_teardown' also runs
+			-- when `a_setup' or `a_test' fails, so no test server is left running;
+			-- the failure then propagates as before.
+		do
+			a_setup.call (Void)
+			a_test.call (Void)
+			a_teardown.call (Void)
+		rescue
+			a_teardown.call (Void)
+		end
+
 feature {NONE} -- HTTP Integration Tests
 
 	run_http_integration_tests
@@ -169,15 +183,11 @@ feature {NONE} -- HTTP Integration Tests
 			create l_tests
 
 			output.append ("  test_http_bridge_sends_to_python_server: ")
-			l_tests.setup
-			l_tests.test_http_bridge_sends_to_python_server
-			l_tests.teardown
+			run_with_server (agent l_tests.setup, agent l_tests.test_http_bridge_sends_to_python_server, agent l_tests.teardown)
 			output.append ("OK%N")
 
 			output.append ("  test_http_bridge_handles_errors: ")
-			l_tests.setup
-			l_tests.test_http_bridge_handles_errors
-			l_tests.teardown
+			run_with_server (agent l_tests.setup, agent l_tests.test_http_bridge_handles_errors, agent l_tests.teardown)
 			output.append ("OK%N")
 		end
 
@@ -219,15 +229,11 @@ feature {NONE} -- IPC Integration Tests
 			create l_tests
 
 			output.append ("  test_ipc_bridge_sends_to_python_server: ")
-			l_tests.setup
-			l_tests.test_ipc_bridge_sends_to_python_server
-			l_tests.teardown
+			run_with_server (agent l_tests.setup, agent l_tests.test_ipc_bridge_sends_to_python_server, agent l_tests.teardown)
 			output.append ("OK%N")
 
 			output.append ("  test_ipc_bridge_handles_errors: ")
-			l_tests.setup
-			l_tests.test_ipc_bridge_handles_errors
-			l_tests.teardown
+			run_with_server (agent l_tests.setup, agent l_tests.test_ipc_bridge_handles_errors, agent l_tests.teardown)
 			output.append ("OK%N")
 		end
 
@@ -240,15 +246,11 @@ feature {NONE} -- gRPC Integration Tests
 			create l_tests
 
 			output.append ("  test_grpc_bridge_sends_to_python_server: ")
-			l_tests.setup
-			l_tests.test_grpc_bridge_sends_to_python_server
-			l_tests.teardown
+			run_with_server (agent l_tests.setup, agent l_tests.test_grpc_bridge_sends_to_python_server, agent l_tests.teardown)
 			output.append ("OK%N")
 
 			output.append ("  test_grpc_bridge_handles_errors: ")
-			l_tests.setup
-			l_tests.test_grpc_bridge_handles_errors
-			l_tests.teardown
+			run_with_server (agent l_tests.setup, agent l_tests.test_grpc_bridge_handles_errors, agent l_tests.teardown)
 			output.append ("OK%N")
 		end
 

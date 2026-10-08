@@ -92,16 +92,11 @@ feature {NONE} -- Process Management
 		end
 
 	sleep_milliseconds (a_milliseconds: INTEGER)
-			-- Sleep for specified milliseconds.
-		local
-			l_proc: SIMPLE_PROCESS
+			-- Sleep for `a_milliseconds' milliseconds.
+		require
+			non_negative: a_milliseconds >= 0
 		do
-			create l_proc.make
-			if {PLATFORM}.is_windows then
-				l_proc.execute ("timeout /t " + (a_milliseconds // 1000).out + " /nobreak")
-			else
-				l_proc.execute ("sleep " + (a_milliseconds / 1000.0).out)
-			end
+			(create {EXECUTION_ENVIRONMENT}).sleep (a_milliseconds.to_integer_64 * 1_000_000)
 		end
 
 	get_project_root: STRING_32

@@ -12,39 +12,29 @@ inherit
 feature -- Setup/Teardown
 
 	setup
-			-- Start Python gRPC server before each test.
+			-- Start this test's Python server through its launcher (start_grpc_server_blocking.py, port 9002).
 		local
-			l_proc: SIMPLE_PROCESS
+			l_server: PYTHON_TEST_SERVER
 		do
-			create grpc_process.make
-			create l_proc.make
-
-			-- Start gRPC server using blocking launcher (waits for port 9002 listening)
-			l_proc.execute ({STRING_32} "python3 " + server_script_path + "start_grpc_server_blocking.py 9002")
-
+			create l_server.make ("start_grpc_server_blocking.py", 9002)
+			l_server.start
+			server := l_server
 			-- Give server extra time to be ready
 			sleep_milliseconds (1000)
 		end
 
 	teardown
-			-- Stop Python gRPC server after each test.
-		local
-			l_proc: SIMPLE_PROCESS
+			-- Stop the server `setup' started, and only that one.
 		do
-			-- Kill Python gRPC server process
-			create l_proc.make
-			l_proc.execute ("taskkill /F /IM python.exe 2>NUL")
-			sleep_milliseconds (500)
-
-			-- Fallback: pkill
-			l_proc.execute ("pkill -9 python3 2>NUL || exit 0")
-			sleep_milliseconds (500)
+			if attached server as al_server then
+				al_server.stop
+			end
 		end
 
 feature {NONE} -- Process Management
 
-	grpc_process: detachable SIMPLE_PROCESS
-			-- gRPC server process handle.
+	server: detachable PYTHON_TEST_SERVER
+			-- Server started by `setup'.
 
 	server_script_path: STRING_32
 			-- Path to the directory containing server startup scripts.
@@ -53,12 +43,11 @@ feature {NONE} -- Process Management
 		end
 
 	sleep_milliseconds (a_ms: INTEGER)
-			-- Sleep for specified milliseconds.
-		local
-			l_proc: SIMPLE_PROCESS
+			-- Sleep for `a_ms' milliseconds.
+		require
+			non_negative: a_ms >= 0
 		do
-			create l_proc.make
-			l_proc.execute ("timeout /t " + (a_ms // 1000).out + " /nobreak")
+			(create {EXECUTION_ENVIRONMENT}).sleep (a_ms.to_integer_64 * 1_000_000)
 		end
 
 feature -- Tests
