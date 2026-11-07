@@ -41,13 +41,13 @@ def main():
 
     # Start the server process with proper detachment
     try:
-        creationflags = 0x00000200  # CREATE_NEW_PROCESS_GROUP
+        detach = {"creationflags": 0x00000200} if os.name == "nt" else {"start_new_session": True}
 
         process = subprocess.Popen(
             [sys.executable, server_script, str(port)],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            creationflags=creationflags,
+            **detach,
             cwd=script_dir
         )
 

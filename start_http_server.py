@@ -40,13 +40,13 @@ def main():
         import ctypes
 
         # Start process with new process group so it survives parent exit
-        creationflags = 0x00000200  # CREATE_NEW_PROCESS_GROUP
+        detach = {"creationflags": 0x00000200} if os.name == "nt" else {"start_new_session": True}
 
         process = subprocess.Popen(
             [sys.executable, script_path, '--port', str(port)],
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            creationflags=creationflags,
+            **detach,
             cwd=os.path.dirname(__file__)
         )
 

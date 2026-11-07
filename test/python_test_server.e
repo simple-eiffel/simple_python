@@ -80,7 +80,11 @@ feature -- Basic operations
 		do
 			if is_running then
 				create l_proc.make
-				l_proc.execute ({STRING_32} "taskkill /F /T /PID " + pid.out)
+				if {PLATFORM}.is_windows then
+					l_proc.execute ({STRING_32} "taskkill /F /T /PID " + pid.out)
+				else
+					l_proc.execute ({STRING_32} "kill " + pid.out)
+				end
 				pid := 0
 			end
 		ensure
